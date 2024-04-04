@@ -205,6 +205,10 @@ def process(
             **open_dataset_kwargs
         )
 
+    # round lat/lon coords
+#    ds.coords['lon'] = ds.coords['lon'].round(decimals=domain.rounding)
+#    ds.coords['lat'] = ds.coords['lat'].round(decimals=domain.rounding)
+
     # Subset temporally
     if not adu.is_time_invariant(ds):
         logger.info(f'Subsetting times to {start_year}')
@@ -286,6 +290,11 @@ def process(
         raise Exception(f'Unable to parse domain {domain}.')
 
     logger.debug('Domain: ' + domain.to_directive())
+    #logger.debug(print(domain.to_directive()))
+    #logger.debug(print('TYPE TYPE'))
+    #logger.debug(print(type(domain)))
+    #logger.debug(print(domain.rounding))
+    rounding = int(domain.rounding)
 
     # Subset the geographical domain
     logger.debug('Subsetting geographical domain.')
@@ -470,6 +479,12 @@ def process(
         # Get the output format from config
         output_format = config.get('output_format', 'NETCDF4')
         
+        # round lat/lon coords and convert to double
+        _ds.coords['lon'] = _ds.coords['lon'].astype('float64')
+        _ds.coords['lat'] = _ds.coords['lat'].astype('float64')
+        _ds.coords['lon'] = _ds.coords['lon'].round(decimals=rounding)
+        _ds.coords['lat'] = _ds.coords['lat'].round(decimals=rounding)
+
         logger.debug(f'Writing {output_filepath}')
         write = _ds.to_netcdf(
             output_filepath,
