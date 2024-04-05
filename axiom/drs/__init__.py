@@ -290,10 +290,6 @@ def process(
         raise Exception(f'Unable to parse domain {domain}.')
 
     logger.debug('Domain: ' + domain.to_directive())
-    #logger.debug(print(domain.to_directive()))
-    #logger.debug(print('TYPE TYPE'))
-    #logger.debug(print(type(domain)))
-    #logger.debug(print(domain.rounding))
     rounding = int(domain.rounding)
 
     # Subset the geographical domain
@@ -404,6 +400,10 @@ def process(
         # Apply a blanket variable encoding.
         encoding[variable] = config.encoding['variables']
 
+        # add lat_bnds and lon_bnds encoding from drs.json to remove _FillValue
+        encoding['lat_bnds'] = config.encoding['lat_bnds']
+        encoding['lon_bnds'] = config.encoding['lon_bnds']
+
         # Postprocess data if required
         postprocessor = adu.load_postprocessor(postprocessor)
 
@@ -422,7 +422,15 @@ def process(
             _ds = update_cell_methods(_ds, variable, dim='time', method='mean')
         else:
             if is_instantaneous(_ds, variable):
-                _ds = update_cell_methods(_ds, variable, dim='time', method='point')
+                _ds[variable].attrs['cell_methods'] = f'area: mean time: point'
+            if adu.is_time_invariant(_ds): # if invariant, set to 'area: mean'
+                _ds[variable].attrs['cell_methods'] = f'area: mean'
+            if _ds[variable].attrs['cell_methods'] == f'time: maximum':
+                _ds[variable].attrs['cell_methods'] = f'area: mean time: maximum'
+            if _ds[variable].attrs['cell_methods'] == f'time: minimum':
+                _ds[variable].attrs['cell_methods'] = f'area: mean time: minimum'
+            if _ds[variable].attrs['cell_methods'] == f'time: mean':
+                _ds[variable].attrs['cell_methods'] = f'area: time: mean'
 
         # Get the full output filepath with string interpolation
         logger.debug('Working out output paths')
@@ -484,6 +492,10 @@ def process(
         _ds.coords['lat'] = _ds.coords['lat'].astype('float64')
         _ds.coords['lon'] = _ds.coords['lon'].round(decimals=rounding)
         _ds.coords['lat'] = _ds.coords['lat'].round(decimals=rounding)
+        _ds['lon_bnds'] = _ds['lon_bnds'].astype('float64')
+        _ds['lat_bnds'] = _ds['lat_bnds'].astype('float64')
+        _ds['lon_bnds'] = _ds['lon_bnds'].round(decimals=rounding)
+        _ds['lat_bnds'] = _ds['lat_bnds'].round(decimals=rounding)
 
         logger.debug(f'Writing {output_filepath}')
         write = _ds.to_netcdf(
@@ -693,15 +705,19 @@ def update_cell_methods(ds, variable, dim='time', method='mean'):
 
     # If there is no cell_methods attribute, add it now.
     if 'cell_methods' not in da.attrs.keys():
-        da.attrs['cell_methods'] = f'{dim}: {method}'
+        da.attrs['cell_methods'] = f'area: {dim}: {method}'
 
     # If the cell method was point, change it
     elif da.attrs['cell_methods'] == f'{dim}: point':
-        da.attrs['cell_methods'] = f'{dim}: {method}'
+        da.attrs['cell_methods'] = f'area: {dim}: {method}'
 
     # If another operation was already applied and doesn't match this, append
     elif da.attrs['cell_methods'] != f'{dim}: {method}':
-        da.attrs['cell_methods'] = da.attrs['cell_methods'] + f' {dim}: {method}'
+        da.attrs['cell_methods'] = f'area: mean ' + da.attrs['cell_methods'] + f' {dim}: {method}'
+
+    # If cell method doesn't include area, add it
+    elif da.attrs['cell_methods'] == f'{dim}: {method}':
+        da.attrs['cell_methods'] = f'area: ' + da.attrs['cell_methods']
 
     ds[variable] = da
     return ds
