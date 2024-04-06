@@ -429,6 +429,8 @@ def process(
                 _ds[variable].attrs['cell_methods'] = f'area: mean time: maximum'
             if _ds[variable].attrs['cell_methods'] == f'time: minimum':
                 _ds[variable].attrs['cell_methods'] = f'area: mean time: minimum'
+            if _ds[variable].attrs['cell_methods'] == f'time: sum':
+                _ds[variable].attrs['cell_methods'] = f'area: mean time: sum'
             if _ds[variable].attrs['cell_methods'] == f'time: mean':
                 _ds[variable].attrs['cell_methods'] = f'area: time: mean'
 
