@@ -65,6 +65,7 @@ def preprocess_ccam(ds, **kwargs):
         
     # Extract the lat/lon bounds as well.
     if variable:
+##        ds = ds[[variable, 'lat_bnds', 'lon_bnds', 'crs']]
         ds = ds[[variable, 'lat_bnds', 'lon_bnds']]
 
     return ds
