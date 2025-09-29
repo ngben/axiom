@@ -145,10 +145,28 @@ def is_instantaneous(ds, variable):
     # if cell_methods is missing
     if 'cell_methods' not in da.attrs.keys():
         return True
-    
+
     # time: point is present
     if da.attrs['cell_methods'] == 'time: point':
         return True
-    
+
     return False
-    
+
+
+def has_height(ds, variable):
+    """Checks for the presence of a scalar coordinate (e.g., a fixed height like h2 or height) 
+    indicating that a variable is at a single level.
+
+    Args:
+        ds (xarray.Dataset): Data.
+        variable (str): Variable currently being processed.
+
+    Returns:
+        tuple: (bool, str or None) - True and name of scalar coordinate if present, else False and None.
+    """
+    da = ds[variable]
+    for name, coord in da.coords.items():
+        if coord.ndim == 0:
+            return True, name
+    return False, None
+

@@ -20,6 +20,7 @@ from dask.distributed import progress, wait
 import numpy as np
 from axiom.supervisor import Supervisor
 from axiom.drs.processing.ccam import is_instantaneous
+from axiom.drs.processing.ccam import has_height
 
 def consume(json_filepath):
     """Consume a json payload (for message passing)
@@ -204,6 +205,17 @@ def process(
             preprocess=preprocess,
             **open_dataset_kwargs
         )
+
+    # Drop height variable and coordinate if it exists
+    _has_height, hcoord = has_height(ds, variable)
+    logger.debug(print(_has_height))
+    logger.debug(print(variable))
+    logger.debug(print(hcoord))
+    if _has_height:
+        ds = ds.drop_vars(hcoord)
+
+    logger.debug(print(ds))
+    logger.debug(print(ds['lat_bnds']))
 
     # round lat/lon coords
 #    ds.coords['lon'] = ds.coords['lon'].round(decimals=domain.rounding)

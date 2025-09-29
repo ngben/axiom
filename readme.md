@@ -7,3 +7,5 @@
 Axiom is a prototype utility for validating/applying metadata templates for scientific data files.
 
 Documentation can be found in the docs directory of this repository.
+
+This version (axiom_acs_rm_hcoords) is for CCAM AUS-10i data which has height coordinates included. axiom will remove these from the DRS'd data
