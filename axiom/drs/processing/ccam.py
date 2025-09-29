@@ -1,21 +1,174 @@
 """Pre and post-processing functions for CCAM."""
+import pandas as pd
 import numpy as np
-import datetime
+from datetime import datetime, timedelta
 import axiom.drs.utilities as adu
 import axiom.utilities as au
+import xarray as xr
+import math
+import cftime
 
+def add_month(year, month):
+    """Add one month to the given year and month, adjusting the year if necessary."""
+    if month == 12:
+        return year + 1, 1
+    else:
+        return year, month + 1
+
+def get_midpoint(year, month, calendar='standard'):
+    """Returns the midpoint of the specified month, accounting for the calendar type.
+
+    Args:
+        year (int): The year.
+        month (int): The month (1-12).
+        calendar_type (str): The type of calendar.
+
+    Returns:
+        datetime: Midpoint of the month.
+    """
+
+    logger = au.get_logger(__name__)
+    if calendar == 'noleap' or calendar == '365_day':
+        days_in_month = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    elif calendar == '360_day':
+        days_in_month = [30] * 12
+    elif calendar == 'standard' or calendar == 'proleptic_gregorian' or calendar == 'gregorian':
+        # Default to 'standard' or 'gregorian' (leap years included)
+        days_in_month = [31, 29 if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0) else 28,
+                         31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+
+    midpoint_day = days_in_month[month - 1] // 2
+    return cftime.datetime(year, month, midpoint_day, calendar=calendar)
+
+def center_times(ds, output_frequency):
+    """Centers the times in the dataset.
+
+    Args:
+        ds (xarray.Dataset): Data.
+
+    Returns:
+        xarray.Dataset : Data with times centered.
+    """
+
+    logger = au.get_logger(__name__)
+    # non-monthly data is simple, just halve the delta
+    if output_frequency != '1M':
+        original_calendar = ds.time.encoding.get('calendar')
+        dt = ds.time.data[1] - ds.time.data[0]
+        ds['time'] = ds.time + (dt / 2)
+        ds.time.encoding['calendar'] = original_calendar
+        ds['time'].attrs['units'] = 'days since 1950-01-01'
+        return ds
+
+    reference_date = datetime(1950, 1, 1, 0, 0)
+    original_calendar = ds.time.encoding.get('calendar')
+
+    times = ds['time'].values
+    years = [int(str(dt)[:4]) for dt in times]
+
+    # Check if the first month is in a different year than the rest
+    if len(set(years)) > 1:
+        shift_months = True
+    else:
+        shift_months = False
+
+    adjusted_times = []
+    for dt in times:
+        year = int(str(dt)[:4])
+        month = int(str(dt)[5:7])
+
+        # Shift the month forward by one if needed
+        if shift_months:
+            year, month = add_month(year, month)
+
+        adjusted_times.append(get_midpoint(year, month, original_calendar))
+
+    # Update the time coordinates with the new values
+    ds['time'] = xr.DataArray(adjusted_times, dims='time')
+    ds['time'].attrs['units'] = ds['time'].attrs.get('units', 'days since 1950-01-01 00:00:00')
+    ds.time.encoding['calendar'] = original_calendar
+    return ds
+
+# Generate time bounds for the resampled data
+def generate_time_bounds(resampled_ds, output_frequency):
+    logger = au.get_logger(__name__)
+    start_times = []
+    end_times = []
+
+    # Determine the calendar type from the dataset
+    calendar_type = resampled_ds['time'].dt.calendar
+
+    # Loop through each time value in the resampled dataset
+    for current_date in resampled_ds['time'].values:
+ 
+        # Check if cftime object (for non-standard calendars)
+        if isinstance(current_date, cftime.datetime):
+            current_datetime = current_date
+            if output_frequency == '1H':
+                start_time = current_datetime - timedelta(hours=1)
+                end_time = current_datetime + timedelta(hours=1)
+            elif output_frequency == '6H':
+                start_time = current_datetime - timedelta(hours=3)
+                end_time = current_datetime + timedelta(hours=3)
+            elif output_frequency == '1D':
+                start_time = current_datetime - timedelta(hours=12)
+                end_time = current_datetime + timedelta(hours=12)
+            elif output_frequency == '1M':
+                start_time = cftime.datetime(current_datetime.year, current_datetime.month, 1, calendar=calendar_type)
+                if current_datetime.month == 12:
+                    end_time = cftime.datetime(current_datetime.year + 1, 1, 1, calendar=calendar_type)
+                else:
+                    end_time = cftime.datetime(current_datetime.year, current_datetime.month + 1, 1, calendar=calendar_type)
+            else:
+                raise ValueError(f'Unsupported frequency: {output_frequency}')
+        else:
+            # Handle numpy datetime64 objects
+            if output_frequency == '1H':
+                start_time = current_date + np.timedelta64(-1, 'h')
+                end_time = current_date + np.timedelta64(1, 'h')
+            elif output_frequency == '6H':
+                start_time = current_date + np.timedelta64(-3, 'h')
+                end_time = current_date + np.timedelta64(3, 'h')
+            elif output_frequency == '1D':
+                start_time = current_date + np.timedelta64(-12, 'h')
+                end_time = current_date + np.timedelta64(12, 'h')
+            elif output_frequency == '1M':
+                year = current_date.astype('datetime64[Y]').astype(int) + 1970
+                month = (current_date.astype('datetime64[M]').astype(int) % 12) + 1
+                start_time = np.datetime64(datetime(year, month, 1))
+                if month == 12:
+                    end_time = np.datetime64(datetime(year + 1, 1, 1))
+                else:
+                    end_time = np.datetime64(datetime(year, month + 1, 1))
+            else:
+                raise ValueError(f'Unsupported frequency: {output_frequency}')
+
+        # Append the calculated times to the lists
+        start_times.append(start_time)
+        end_times.append(end_time)
+    # Create an xarray DataArray for time bounds
+    time_bnds = xr.DataArray(
+        data=np.array([start_times, end_times]).T,
+        dims=['time', 'bnds'],  # Define dimensions
+        name='time_bnds'  # Name the DataArray
+    )
+
+    # Set the time for time_bnds from the resampled dataset
+    time_bnds['time'] = resampled_ds['time']
+
+    return time_bnds
 
 def _detect_version(ds):
     """The CCAM version can be detected from the history metadata.
 
     Args:
         ds (xarray.Dataset): Dataset
-    
+
     Returns:
         str : Version.
     """
     history = ds.attrs['history']
-    yymm = datetime.datetime.strptime(history.split()[2], '%Y-%m-%d').strftime('%y%m')
+    yymm = datetime.strptime(history.split()[2], '%Y-%m-%d').strftime('%y%m')
     return yymm
 
 
@@ -60,37 +213,31 @@ def preprocess_ccam(ds, **kwargs):
         version = _detect_version(ds)
     else:
         version = kwargs['kwargs']['model_id'].split('-')[-1]
-        
+
     ds = _set_version_metadata(ds, version)
-        
+
     # Extract the lat/lon bounds as well.
+    _is_instantaneous = is_instantaneous(ds, kwargs['variable'])
+    _has_height, hcoord = has_height(ds, kwargs['variable'])
+
+    # Start with the basic list of variables to keep
+    vars_to_keep = ['lat_bnds', 'lon_bnds', 'crs']
+
+    # Include time_bnds only if not instantaneous
+    if not _is_instantaneous:
+        vars_to_keep.append('time_bnds')
+
+    # Include height coordinate if present
+    if _has_height and hcoord:
+        vars_to_keep.append(hcoord)
+
+    # Finally, include the main variable
     if variable:
-        ds = ds[[variable, 'lat_bnds', 'lon_bnds']]
+        vars_to_keep.insert(0, variable)  # Ensure variable is first
+
+    ds = ds[vars_to_keep]
 
     return ds
-
-def center_times(ds, output_frequency):
-    """Centers the times in the dataset.
-
-    Args:
-        ds (xarray.Dataset): Data.
-    
-    Returns:
-        xarray.Dataset : Data with times centered.
-    """
-
-    # non-monthly data is simple, just halve the delta
-    if output_frequency != '1M':
-        dt = ds.time.data[1] - ds.time.data[0]
-        ds['time'] = ds.time + (dt / 2)
-        return ds
-
-    # Otherwise, we need to apply more logic to the problem.
-    dt = ds.time.data[1:] - ds.time.data[0:-1]
-    new_times = ds.time.data[:] + (dt / 2)
-    new_times = np.append(new_times, new_times[6]) # july
-    ds['time'] = new_times
-
 
 def postprocess_ccam(ds, **kwargs):
     """For CORDEX processing, there is some minor postprocessing that happens.
@@ -113,23 +260,38 @@ def postprocess_ccam(ds, **kwargs):
 
     # Strip out the extra dimensions from bnds (reduces filesize considerably)
     if 'lat_bnds' in ds.data_vars.keys():
-        
+
         # Drop surplus coordinates
         ds['lat_bnds'] = au.isolate_coordinate(ds.lat_bnds, 'lat', drop=True)
         ds['lon_bnds'] = au.isolate_coordinate(ds.lon_bnds, 'lon', drop=True)
+        if not adu.is_time_invariant(ds):
+            ds['crs'] = ds['crs'].isel(time=0).drop('time') # drop time dimension for crs
+            _has_height_attr, hcoord = has_height_attr(ds, kwargs['variable'])
+            if _has_height_attr and 'time' in ds[hcoord].dims:
+                ds[hcoord] = ds[hcoord].isel(time=0).drop('time')
+#        ds['time_bnds'] = au.isolate_coordinate(ds.time_bnds, 'time', drop=True)
 
     # Center the times for non-instantaneous data.
     _is_instantaneous = is_instantaneous(ds, kwargs['variable'])
     _resampling_applied = kwargs['resampling_applied']
-    
+    _output_frequency = kwargs['output_frequency']
+
     logger.debug(f'is_instantaneous = {_is_instantaneous}')
     logger.debug(f'resampling_applied = {_resampling_applied}')
     if _resampling_applied == True:
-        logger.debug('TIME CENTERING TRIGGERED')
-        ds = center_times(ds, output_frequency=['output_frequency'])
+        logger.debug(f"TIME CENTERING TRIGGERED")
+        ds = center_times(ds, output_frequency=_output_frequency)
+        logger.debug(f"GENERATING TIME BOUNDS")
+        ds['time_bnds'] = generate_time_bounds(ds, output_frequency=_output_frequency)
+        ds['time'].attrs['axis'] = 'T'
+        ds['time'].attrs['standard_name'] = 'time'
+        ds['time'].attrs['bounds'] = 'time_bnds'
+
+#    if not adu.is_time_invariant(ds):
+        if 'units' in ds['time'].attrs:
+            del ds['time'].attrs['units']
 
     return ds
-
 
 def is_instantaneous(ds, variable):
     """Checks for the presence of CCAM-specific flags indicating that a variable is instantaneous.
@@ -144,10 +306,46 @@ def is_instantaneous(ds, variable):
     # if cell_methods is missing
     if 'cell_methods' not in da.attrs.keys():
         return True
-    
+
     # time: point is present
     if da.attrs['cell_methods'] == 'time: point':
         return True
-    
+
     return False
-    
+
+def has_height(ds, variable):
+    """Checks for the presence of a scalar coordinate (e.g., a fixed height like h2 or height) 
+    indicating that a variable is at a single level.
+
+    Args:
+        ds (xarray.Dataset): Data.
+        variable (str): Variable currently being processed.
+
+    Returns:
+        tuple: (bool, str or None) - True and name of scalar coordinate if present, else False and None.
+    """
+    da = ds[variable]
+    for name, coord in da.coords.items():
+        if coord.ndim == 0:
+            return True, name
+    return False, None
+
+def has_height_attr(ds, variable):
+    """Checks for the presence of attribute 'coordinates'
+    indicating that a variable is at a single level.
+
+    Args:
+        ds (xarray.Dataset): Data.
+        variable (str): Variable currently being processed.
+
+    Returns:
+        tuple: (bool, str or None) - True and name of the coordinate if present, else False and None.
+    """
+    da = ds[variable]
+    hcoordinate = da.attrs.get('coordinates', None)
+
+    # if coordinates is present
+    if 'coordinates' in da.attrs.keys():
+        return True, hcoordinate
+
+    return False, None

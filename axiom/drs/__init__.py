@@ -19,7 +19,10 @@ import shutil
 from dask.distributed import progress, wait
 import numpy as np
 from axiom.supervisor import Supervisor
-
+from axiom.drs.processing.ccam import is_instantaneous
+from axiom.drs.processing.ccam import has_height
+from axiom.drs.processing.ccam import has_height_attr
+import cftime
 
 def consume(json_filepath):
     """Consume a json payload (for message passing)
@@ -49,7 +52,7 @@ def consume(json_filepath):
     payload = json.loads(open(json_filepath, 'r').read())
 
     # Allow rerun of failed variables (do this after all other variables have been processed!)
-    config = load_config('drs')
+    config = load_config('drs_20i')
     failures_path = f'{json_filepath}_001.failed'
     if config.rerun_failures and os.path.exists(failures_path):
         failed_variables = open(failures_path, 'r').read().splitlines()
@@ -111,7 +114,7 @@ def process(
 
     # Load the logger and configuration
     logger = au.get_logger(__name__)
-    config = load_config('drs')
+    config = load_config('drs_20i')
 
     # Dump the job id if available
     if 'PBS_JOBID' in os.environ.keys():
@@ -136,7 +139,7 @@ def process(
 
     # Filter by those that actually have the year in the filename (plus or minus an offset).
     if config.filename_filtering['year']:
-        
+
         input_files = filter_years(
             input_files, start_year, offset=config.filename_filtering['year_offset'])
         num_files = len(input_files)
@@ -198,12 +201,32 @@ def process(
         ds = preprocess(ds, variable=variable)
 
     else:
-        
         ds = xr.open_mfdataset(
             input_files,
             preprocess=preprocess,
             **open_dataset_kwargs
         )
+
+    logger.debug(f'INPUT')
+    logger.debug(f'INPUT')
+    logger.debug(f'INPUT')
+    logger.debug(print(ds))
+    logger.debug(print(ds['lon_bnds']))
+    logger.debug(print(ds['lat_bnds']))
+    logger.debug(print(ds['crs']))
+
+    # remove height variable as a scalar coordinate
+    _has_height, hcoord = has_height(ds, variable)
+    logger.debug(print(hcoord))
+    logger.debug(print(_has_height))
+    if _has_height:
+        ds = ds.reset_coords(hcoord, drop=False)
+        ds[variable].attrs["coordinates"] = hcoord
+
+    logger.debug(f'INPUT after drop')
+    logger.debug(f'INPUT after drop')
+    logger.debug(f'INPUT after drop')
+    logger.debug(print(ds))
 
     # Subset temporally
     if not adu.is_time_invariant(ds):
@@ -286,6 +309,7 @@ def process(
         raise Exception(f'Unable to parse domain {domain}.')
 
     logger.debug('Domain: ' + domain.to_directive())
+    rounding = int(domain.rounding)
 
     # Subset the geographical domain
     logger.debug('Subsetting geographical domain.')
@@ -333,7 +357,19 @@ def process(
         else:
             logger.debug(f'Resampling to {output_frequency} mean.')
             context['frequency_mapping'] = config['frequency_mapping'][output_frequency]
+
+            # Check if the time variable uses a non-standard calendar
+            if isinstance(_ds.time.values[0], cftime.datetime):
+                original_calendar = _ds.time.encoding.get('calendar', 'standard')
+            else:
+                original_calendar = 'standard'
+
+            # Resample the data
             _ds = _ds.resample(time=output_frequency, label='left').mean()
+
+            # Retain original calendar
+            _ds.time.encoding['calendar'] = original_calendar
+            _ds.time.attrs['calendar'] = original_calendar
 
             # Update the cell methods below
             resampling_applied = True
@@ -348,7 +384,7 @@ def process(
         context['start_date'], context['end_date'] = adu.get_start_and_end_dates(year, output_frequency)
 
         # Tracking info
-        context['creation_date'] = datetime.utcnow()
+        context['creation_date'] = datetime.utcnow().isoformat(timespec='seconds')+'Z'
         context['uuid'] = uuid4()
 
         # Interpolate context
@@ -392,25 +428,66 @@ def process(
                 continue
             encoding[coord] = config.encoding[coord]
 
+        logger.debug(print(encoding))
+        logger.debug(print(list(_ds.coords.keys())))
+
         # Apply a blanket variable encoding.
         encoding[variable] = config.encoding['variables']
+        encoding['lat_bnds'] = config.encoding['lat_bnds']
+        encoding['lon_bnds'] = config.encoding['lon_bnds']
+        encoding['crs'] = config.encoding['crs']
 
         # Postprocess data if required
         postprocessor = adu.load_postprocessor(postprocessor)
+
+        logger.debug(print(_ds))
+        logger.debug(print(_ds.lat_bnds.dims))
 
         def postprocess(_ds, *args, **kwargs):
             combined = dict()
             combined.update(kwargs)
             combined.update(local_args)
             combined['resampling_applied'] = resampling_applied
-    
+            combined['output_frequency'] = output_frequency
+
             return postprocessor(_ds, **combined)
-        
+
         _ds = postprocess(_ds)
+
+        logger.debug(f'Postprocessing done')
+        logger.debug(print(_ds))
+        logger.debug(print(_ds.lat_bnds.dims))
+
+        # Update time_bnds encoding, drop time_bnds attributes
+        if resampling_applied or not is_instantaneous(_ds, variable):
+            _ds['time_bnds'].attrs = {}
+            encoding['time_bnds'] = config.encoding['time_bnds']
+
+        # Update height scalar coordinate encoding
+        _has_height, hcoord = has_height_attr(ds, variable)
+        if _has_height:
+            encoding[hcoord] = config.encoding[hcoord]
 
         # Update the cell methods
         if resampling_applied:
             _ds = update_cell_methods(_ds, variable, dim='time', method='mean')
+        else:
+            cell_methods = _ds[variable].attrs.get('cell_methods', '')
+            if adu.is_time_invariant(_ds):
+                cell_methods = 'area: mean'
+            elif is_instantaneous(_ds, variable):
+                cell_methods = 'area: mean time: point'
+            else:
+                if cell_methods == 'time: maximum':
+                    cell_methods = 'area: mean time: maximum'
+                elif cell_methods == 'time: minimum':
+                    cell_methods = 'area: mean time: minimum'
+                elif cell_methods == 'time: sum':
+                    cell_methods = 'area: mean time: sum'
+                elif cell_methods == 'time: mean':
+                    cell_methods = 'area: time: mean'
+    
+            _ds[variable].attrs['cell_methods'] = cell_methods
 
         # Get the full output filepath with string interpolation
         logger.debug('Working out output paths')
@@ -419,11 +496,26 @@ def process(
         if config.derive_filename_times_from_data:
             logger.info(
                 'User has requested that filename times reflect the actual timeseries.')
-            str_times = _ds.time.dt.strftime('%Y%m%d').data
-            context['start_date'] = str_times[0]
-            context['end_date'] = str_times[-1]
-            logger.debug(
-                'start_date = %(start_date)s, end_date = %(end_date)s' % context)
+#            str_times = _ds.time.dt.strftime('%Y%m%d').data
+            # Determine the format based on the output_frequency
+            if output_frequency in ['1H', '6H']:
+                date_format = '%Y%m%d%H%M'
+            elif output_frequency == '1D':
+                date_format = '%Y%m%d'
+            elif output_frequency == '1M':
+                date_format = '%Y%m'
+            elif output_frequency == 'fx':
+                date_format = None
+            else:
+                raise ValueError(f"Unsupported output_frequency: {output_frequency}")
+
+            # Apply the determined format to the times
+            if date_format is not None:
+                str_times = _ds.time.dt.strftime(date_format).data
+                context['start_date'] = str_times[0]
+                context['end_date'] = str_times[-1]
+                logger.debug(
+                    'start_date = %(start_date)s, end_date = %(end_date)s' % context)
 
         drs_path = adu.get_template(config, 'drs_path') % context
         filename_template = adu.get_template(config, 'filename')
@@ -466,7 +558,36 @@ def process(
 
         # Get the output format from config
         output_format = config.get('output_format', 'NETCDF4')
-        
+
+        # round lat/lon coords and convert to double
+        _ds.coords['lon'] = _ds.coords['lon'].astype('float64')
+        _ds.coords['lat'] = _ds.coords['lat'].astype('float64')
+        _ds.coords['lon'] = _ds.coords['lon'].round(decimals=rounding)
+        _ds.coords['lat'] = _ds.coords['lat'].round(decimals=rounding)
+        _ds['lon_bnds'] = _ds['lon_bnds'].astype('float64')
+        _ds['lat_bnds'] = _ds['lat_bnds'].astype('float64')
+        _ds['lon_bnds'] = _ds['lon_bnds'].round(decimals=rounding)
+        _ds['lat_bnds'] = _ds['lat_bnds'].round(decimals=rounding)
+
+#        # Update height scalar coordinate encoding # this shouldn't be working as the scalar coordinate is now an attribute
+#        _has_height, hcoord = has_height(_ds, variable)
+#        if _has_height:
+#            encoding[hcoord] = config.encoding[hcoord]
+
+        logger.debug(f'ENCODING')
+        logger.debug(f'ENCODING')
+        logger.debug(f'ENCODING')
+        logger.debug(print("_ds.data_vars:", list(_ds.data_vars)))
+        logger.debug(print("_ds.coords:", list(_ds.coords)))
+        logger.debug(print("_ds.variables:", list(_ds.variables)))
+        logger.debug(print("encoding:", encoding))
+        logger.debug(print("variable encoding:", _ds[variable].encoding))
+
+        # remove encoding in variable
+        if 'coordinates' in _ds[variable].encoding:
+            del _ds[variable].encoding['coordinates']
+        logger.debug(print("variable encoding:", _ds[variable].encoding))
+
         logger.debug(f'Writing {output_filepath}')
         write = _ds.to_netcdf(
             output_filepath,
@@ -517,7 +638,7 @@ def process_multi(variables, domain, project, **kwargs):
 
     # Load the project metadata
     project_config = load_config('projects')[project]
-    config = load_config('drs')
+    config = load_config('drs_20i')
 
     # Load all variables if nothing was supplied
     if not variables:
@@ -655,7 +776,8 @@ def filter_years(filepaths, year, offset=0):
     years = range(year-offset, year+offset+1)
     for filepath in filepaths:
         for year in years:
-            if str(year) in os.path.basename(filepath):
+###            if str(year) in os.path.basename(filepath):
+            if f".{year}" in os.path.basename(filepath):
                 _filepaths.append(filepath)
     
     return _filepaths
@@ -675,15 +797,19 @@ def update_cell_methods(ds, variable, dim='time', method='mean'):
 
     # If there is no cell_methods attribute, add it now.
     if 'cell_methods' not in da.attrs.keys():
-        da.attrs['cell_methods'] = f'{dim}: {method}'
+        da.attrs['cell_methods'] = f'area: {dim}: {method}'
 
     # If the cell method was point, change it
     elif da.attrs['cell_methods'] == f'{dim}: point':
-        da.attrs['cell_methods'] = f'{dim}: {method}'
+        da.attrs['cell_methods'] = f'area: {dim}: {method}'
 
     # If another operation was already applied and doesn't match this, append
     elif da.attrs['cell_methods'] != f'{dim}: {method}':
-        da.attrs['cell_methods'] = da.attrs['cell_methods'] + f' {dim}: {method}'
+        da.attrs['cell_methods'] = f'area: mean ' + da.attrs['cell_methods'] + f' {dim}: {method}'
+
+    # If cell method doesn't include area, add it
+    elif da.attrs['cell_methods'] == f'{dim}: {method}':
+        da.attrs['cell_methods'] = f'area: ' + da.attrs['cell_methods']
 
     ds[variable] = da
     return ds
@@ -710,7 +836,7 @@ def is_error_recoverable(exception):
     Returns:
         bool : True if recoverable, False otherwise.
     """
-    config = load_config('drs')
+    config = load_config('drs_20i')
     return adu.is_error_recoverable(exception, config.get('recoverable_errors', list()))
 
 
@@ -722,7 +848,7 @@ def track_failure(variable, exception):
         exception (Exception): Exception raised.
     """
     
-    config = load_config('drs')
+    config = load_config('drs_20i')
 
     if config.track_failures and 'AXIOM_LOG_DIR' in os.environ.keys() and 'PBS_JOBNAME' in os.environ.keys():
 

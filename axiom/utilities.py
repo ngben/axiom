@@ -133,9 +133,18 @@ def isolate_coordinate(obj, coordinate_name, drop=True):
         coordinate_name (str): Name of the coordinate to retain.
         drop (bool, optional): Drop the coordinate_name from the object. Defaults to True.
     """
-    for coord in obj.coords.keys():
+#    for coord in obj.coords.keys():
+#        if coord != coordinate_name:
+##        if coord != coordinate_name and coord in obj.dims:
+#            obj = obj.isel(**{coord: 0}, drop=drop)
+#    return obj
+
+    for coord in list(obj.coords.keys()): # Use list to avoid runtime modification issues
         if coord != coordinate_name:
-            obj = obj.isel(**{coord: 0}, drop=drop)
+            if obj.coords[coord].size > 1: # Check if the coordinate is not scalar
+                obj = obj.isel(**{coord: 0}, drop=drop)
+            elif drop: # Drop scalar coordinates if drop is True
+                obj = obj.drop_vars(coord)
     return obj
 
 

@@ -9,15 +9,17 @@ class Domain:
         lat_max (float): Maximum latitude.
         lon_min (float): Minimum longitude.
         lon_max (float): Maximum longitude.
+        rounding (integer): Decimal rounding.
     """
 
-    def __init__(self, name, dx, lat_min, lat_max, lon_min, lon_max):
+    def __init__(self, name, dx, lat_min, lat_max, lon_min, lon_max, rounding):
         self.name = name
         self.dx = dx
         self.lat_min = lat_min
         self.lat_max = lat_max
         self.lon_min = lon_min
         self.lon_max = lon_max
+        self.rounding = rounding
     
 
     def from_dict(domain_dict):
@@ -44,7 +46,8 @@ class Domain:
             lat_min=self.lat_min,
             lat_max=self.lat_max,
             lon_min=self.lon_min,
-            lon_max=self.lon_max
+            lon_max=self.lon_max,
+            rounding=self.rounding
         )
     
 
@@ -67,7 +70,8 @@ class Domain:
             lat_min=lat_min,
             lat_max=lat_max,
             lon_min=lon_min,
-            lon_max=lon_max
+            lon_max=lon_max,
+            rounding=rounding
         )
     
 
@@ -77,7 +81,7 @@ class Domain:
         Returns:
             str : Directive.
         """
-        return f'{self.name},{self.dx},{self.lat_min},{self.lat_max},{self.lon_min},{self.lon_max}'
+        return f'{self.name},{self.dx},{self.lat_min},{self.lat_max},{self.lon_min},{self.lon_max},{self.rounding}'
 
 
     def subset_xarray(self, ds, drop=True):

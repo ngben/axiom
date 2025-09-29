@@ -872,6 +872,26 @@
                 ]
             }
         },
+        "mrsfl": {
+            "long_name": {
+                "type": "string",
+                "allowed": [
+                    "Frozen Water Content of Soil Layer"
+                ]
+            },
+            "standard_name": {
+                "type": "string",
+                "allowed": [
+                    "frozen_water_content_of_soil_layer"
+                ]
+            },
+            "units": {
+                "type": "string",
+                "allowed": [
+                    "kg m-2"
+                ]
+            }
+        },
         "mrso": {
             "long_name": {
                 "type": "string",

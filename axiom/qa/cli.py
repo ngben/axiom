@@ -63,7 +63,7 @@ def qc(schema, payload, start_year, end_year, report_dir=None, nstd=2.0, pct_mea
     checks = set(sorted(checks.split(',')))
 
     # Load the configuration, get the templates for filepaths
-    config = load_config('drs')
+    config = load_config('drs_20i')
     logger = au.get_logger(__name__)
 
     # Start building context
