@@ -7,3 +7,5 @@
 Axiom is a prototype utility for validating/applying metadata templates for scientific data files.
 
 Documentation can be found in the docs directory of this repository.
+
+This version is for AUS-20i data and follows CORDEX specifications (https://zenodo.org/records/15047096). NOTE: This requires drs_20i.json in the user's ~/.axiom directory
