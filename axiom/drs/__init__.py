@@ -70,7 +70,6 @@ def consume(json_filepath):
     # Explicit exit (#125)
     sys.exit(0)
 
-
 def process(
     input_files,
     output_directory,
@@ -207,26 +206,11 @@ def process(
             **open_dataset_kwargs
         )
 
-    logger.debug(f'INPUT')
-    logger.debug(f'INPUT')
-    logger.debug(f'INPUT')
-    logger.debug(print(ds))
-    logger.debug(print(ds['lon_bnds']))
-    logger.debug(print(ds['lat_bnds']))
-    logger.debug(print(ds['crs']))
-
     # remove height variable as a scalar coordinate
     _has_height, hcoord = has_height(ds, variable)
-    logger.debug(print(hcoord))
-    logger.debug(print(_has_height))
     if _has_height:
         ds = ds.reset_coords(hcoord, drop=False)
         ds[variable].attrs["coordinates"] = hcoord
-
-    logger.debug(f'INPUT after drop')
-    logger.debug(f'INPUT after drop')
-    logger.debug(f'INPUT after drop')
-    logger.debug(print(ds))
 
     # Subset temporally
     if not adu.is_time_invariant(ds):
@@ -330,11 +314,11 @@ def process(
         # Historical cutoff is defined in $HOME/.axiom/drs.json
         if config.enable_historical_cutoff == True:
             context['experiment'] = 'historical' if year < config.historical_cutoff else context['rcp']
-        
+
         logger.info(f'Native frequency of data detected as {native_frequency}')
 
         # Automatically detect the output_frequency from the input data, this will not require resampling
-        
+
         # Flag to trigger cell_method update below.
         resampling_applied = False
 
@@ -428,9 +412,6 @@ def process(
                 continue
             encoding[coord] = config.encoding[coord]
 
-        logger.debug(print(encoding))
-        logger.debug(print(list(_ds.coords.keys())))
-
         # Apply a blanket variable encoding.
         encoding[variable] = config.encoding['variables']
         encoding['lat_bnds'] = config.encoding['lat_bnds']
@@ -439,9 +420,6 @@ def process(
 
         # Postprocess data if required
         postprocessor = adu.load_postprocessor(postprocessor)
-
-        logger.debug(print(_ds))
-        logger.debug(print(_ds.lat_bnds.dims))
 
         def postprocess(_ds, *args, **kwargs):
             combined = dict()
@@ -455,8 +433,6 @@ def process(
         _ds = postprocess(_ds)
 
         logger.debug(f'Postprocessing done')
-        logger.debug(print(_ds))
-        logger.debug(print(_ds.lat_bnds.dims))
 
         # Update time_bnds encoding, drop time_bnds attributes
         if resampling_applied or not is_instantaneous(_ds, variable):
@@ -486,7 +462,7 @@ def process(
                     cell_methods = 'area: mean time: sum'
                 elif cell_methods == 'time: mean':
                     cell_methods = 'area: time: mean'
-    
+
             _ds[variable].attrs['cell_methods'] = cell_methods
 
         # Get the full output filepath with string interpolation
@@ -574,19 +550,9 @@ def process(
 #        if _has_height:
 #            encoding[hcoord] = config.encoding[hcoord]
 
-        logger.debug(f'ENCODING')
-        logger.debug(f'ENCODING')
-        logger.debug(f'ENCODING')
-        logger.debug(print("_ds.data_vars:", list(_ds.data_vars)))
-        logger.debug(print("_ds.coords:", list(_ds.coords)))
-        logger.debug(print("_ds.variables:", list(_ds.variables)))
-        logger.debug(print("encoding:", encoding))
-        logger.debug(print("variable encoding:", _ds[variable].encoding))
-
         # remove encoding in variable
         if 'coordinates' in _ds[variable].encoding:
             del _ds[variable].encoding['coordinates']
-        logger.debug(print("variable encoding:", _ds[variable].encoding))
 
         logger.debug(f'Writing {output_filepath}')
         write = _ds.to_netcdf(
@@ -652,10 +618,10 @@ def process_multi(variables, domain, project, **kwargs):
 
         # Load it
         logger.info(f'No variables supplied, loading from schema as defined in configuration ({schema_key}).')
-        schema = axs.load_schema(schema_key)        
+        schema = axs.load_schema(schema_key)
         variables = list(schema['variables'].keys())
-    
-    
+
+
     else:
         logger.debug('User has supplied the following variables')
         logger.debug(variables)
@@ -678,7 +644,7 @@ def process_multi(variables, domain, project, **kwargs):
         logger.info(client)
 
     output_frequencies = au.pluralise(kwargs['output_frequency'])
-    
+
     # Yes this is a nested loop, but a single variable/domain/output_freq combination could still be 10K+ files, which WILL be processed in parallel.
     for variable in variables:
         for output_frequency in output_frequencies:
@@ -726,14 +692,14 @@ def process_multi(variables, domain, project, **kwargs):
                         logger.info('Error is recoverable, incrementing attempts.')
                         attempt += 1
                         continue
-                    
+
                     # Track the failure and max out the attempts to execute the finally clause
                     track_failure(variable, ex)
                     attempt = rerun_attempts + 1
 
                 # Unknown exception
                 except Exception as ex:
-                    
+
                     log_exception(
                         f'Variable {variable} failed for output_frequency {output_frequency}. Error to follow',
                         ex
@@ -752,7 +718,7 @@ def process_multi(variables, domain, project, **kwargs):
 
                 # Run regardless of success/failure
                 finally:
-                    
+
                     if config.dask['enable'] and config.dask['restart_client_between_variables'] and no_files == False:
                         logger.info('User has requested dask client restarts between each variable (for resilience), restarting now.')
                         client.restart()
@@ -768,7 +734,7 @@ def filter_years(filepaths, year, offset=0):
         filepaths (list): List of filepaths.
         year (int): Year.
         offset (int, optional): Number of years either side of YEAR to include. Defaults to 0.
-    
+
     Returns:
         list : List of filtered filepaths.
     """
@@ -779,7 +745,7 @@ def filter_years(filepaths, year, offset=0):
 ###            if str(year) in os.path.basename(filepath):
             if f".{year}" in os.path.basename(filepath):
                 _filepaths.append(filepath)
-    
+
     return _filepaths
 
 
@@ -832,7 +798,7 @@ def is_error_recoverable(exception):
 
     Args:
         exception (Exception): Raised exception to check.
-    
+
     Returns:
         bool : True if recoverable, False otherwise.
     """
@@ -847,7 +813,7 @@ def track_failure(variable, exception):
         variable (str): Variable name.
         exception (Exception): Exception raised.
     """
-    
+
     config = load_config('drs_20i')
 
     if config.track_failures and 'AXIOM_LOG_DIR' in os.environ.keys() and 'PBS_JOBNAME' in os.environ.keys():

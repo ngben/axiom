@@ -7,6 +7,7 @@ import axiom.utilities as au
 import xarray as xr
 import math
 import cftime
+import calendar as pycal
 
 def add_month(year, month):
     """Add one month to the given year and month, adjusting the year if necessary."""
@@ -29,16 +30,23 @@ def get_midpoint(year, month, calendar='standard'):
 
     logger = au.get_logger(__name__)
     if calendar == 'noleap' or calendar == '365_day':
-        days_in_month = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+        days_in_month = 28 if month ==2 else pycal.monthrange(2001, month)[1]
     elif calendar == '360_day':
-        days_in_month = [30] * 12
+        days_in_month = 30
     elif calendar == 'standard' or calendar == 'proleptic_gregorian' or calendar == 'gregorian':
         # Default to 'standard' or 'gregorian' (leap years included)
-        days_in_month = [31, 29 if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0) else 28,
-                         31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+        days_in_month = pycal.monthrange(year, month)[1]
 
-    midpoint_day = days_in_month[month - 1] // 2
-    return cftime.datetime(year, month, midpoint_day, calendar=calendar)
+    total_hours = days_in_month * 24
+    half_hours = total_hours / 2
+
+    start = datetime(year, month, 1, 0 ,0)
+    midpoint = start + timedelta(hours=half_hours)
+    if calendar in ['360_day']:
+        return cftime.Datetime360Day(midpoint.year, midpoint.month, midpoint.day,
+                                     midpoint.hour, midpoint.minute, midpoint.second)
+    else:
+        return midpoint
 
 def center_times(ds, output_frequency):
     """Centers the times in the dataset.
@@ -73,9 +81,13 @@ def center_times(ds, output_frequency):
         shift_months = False
 
     adjusted_times = []
-    for dt in times:
-        year = int(str(dt)[:4])
-        month = int(str(dt)[5:7])
+    for dt in ds.time.values:
+        try:
+            year, month = dt.year, dt.month  # works for datetime or cftime
+        except AttributeError:
+            # fallback if dt is string or numpy.datetime64
+            dt_str = str(dt)
+            year, month = int(dt_str[:4]), int(dt_str[5:7])
 
         # Shift the month forward by one if needed
         if shift_months:
@@ -100,7 +112,7 @@ def generate_time_bounds(resampled_ds, output_frequency):
 
     # Loop through each time value in the resampled dataset
     for current_date in resampled_ds['time'].values:
- 
+
         # Check if cftime object (for non-standard calendars)
         if isinstance(current_date, cftime.datetime):
             current_datetime = current_date
