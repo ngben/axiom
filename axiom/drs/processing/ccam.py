@@ -29,11 +29,11 @@ def get_midpoint(year, month, calendar='standard'):
     """
 
     logger = au.get_logger(__name__)
-    if calendar == 'noleap' or calendar == '365_day':
-        days_in_month = 28 if month ==2 else pycal.monthrange(2001, month)[1]
-    elif calendar == '360_day':
+    if calendar == '360_day':
         days_in_month = 30
-    elif calendar == 'standard' or calendar == 'proleptic_gregorian' or calendar == 'gregorian':
+    elif calendar in ['365_day', 'noleap']:
+        days_in_month = 28 if month ==2 else pycal.monthrange(2001, month)[1]
+    else:
         # Default to 'standard' or 'gregorian' (leap years included)
         days_in_month = pycal.monthrange(year, month)[1]
 
@@ -42,8 +42,11 @@ def get_midpoint(year, month, calendar='standard'):
 
     start = datetime(year, month, 1, 0 ,0)
     midpoint = start + timedelta(hours=half_hours)
-    if calendar in ['360_day']:
+    if calendar == '360_day':
         return cftime.Datetime360Day(midpoint.year, midpoint.month, midpoint.day,
+                                     midpoint.hour, midpoint.minute, midpoint.second)
+    elif calendar in ['365_day', 'noleap']:
+        return cftime.DatetimeNoLeap(midpoint.year, midpoint.month, midpoint.day,
                                      midpoint.hour, midpoint.minute, midpoint.second)
     else:
         return midpoint
