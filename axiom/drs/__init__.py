@@ -23,6 +23,64 @@ from axiom.drs.processing.ccam import is_instantaneous
 from axiom.drs.processing.ccam import has_height
 from axiom.drs.processing.ccam import has_height_attr
 import cftime
+import re
+import pandas as pd
+
+DATASET_TABLE = None
+def load_dataset_table():
+    """
+    Centralized function to load the CORDEX datasets.csv file once.
+    """
+    global DATASET_TABLE
+    if DATASET_TABLE is not None:
+        return True
+
+    url = "https://raw.githubusercontent.com/WCRP-CORDEX/data-request-table/main/cmor-table/datasets.csv"
+#    local_path = "/g/data/xv83/users/bxn599/aus20i_check_all/datasets.csv"
+    local_path = os.path.join(au.get_installed_data_root(), 'datasets.csv')
+
+    try:
+        DATASET_TABLE = pd.read_csv(url)
+        print("✅ Successfully loaded dataset from GitHub.")
+        return True
+    except Exception as e:
+        print(f"🌐 Remote download failed: {e}")
+        if os.path.exists(local_path):
+            try:
+                DATASET_TABLE = pd.read_csv(local_path)
+                print(f"🏠 Loaded fallback version from {local_path}.")
+                return True
+            except Exception as local_e:
+                print(f"⚠️ Error reading local file: {local_e}")
+                return False
+        else:
+            print(f"❌ Critical Error: Remote failed and {local_path} not found.")
+            return False
+
+def get_official_cell_method(variable_id, freq):
+    """
+    Fetches the official cell_method from CSV file
+    """
+    if not load_dataset_table(): return None
+
+    var_col = 'out_name' if 'out_name' in DATASET_TABLE.columns else 'variable_id'
+    freq_col = 'frequency'
+
+    if freq_col not in DATASET_TABLE.columns: return None
+
+    try:
+        # Case-insensitive lookup for the variable name
+        match = DATASET_TABLE[
+            (DATASET_TABLE[var_col].str.lower() == variable_id.lower()) & 
+            (DATASET_TABLE[freq_col] == freq)
+        ]
+
+        if not match.empty:
+            # Return the first matching cell_method
+            return str(match.iloc[0]['cell_methods']).strip()
+    except KeyError as e:
+        print(f"⚠️ Table KeyError: Could not find column {e}. Available columns: {DATASET_TABLE.columns.tolist()}")
+        return None
 
 def consume(json_filepath):
     """Consume a json payload (for message passing)
@@ -444,26 +502,31 @@ def process(
         if _has_height:
             encoding[hcoord] = config.encoding[hcoord]
 
-        # Update the cell methods
-        if resampling_applied:
-            _ds = update_cell_methods(_ds, variable, dim='time', method='mean')
-        else:
-            cell_methods = _ds[variable].attrs.get('cell_methods', '')
-            if adu.is_time_invariant(_ds):
-                cell_methods = 'area: mean'
-            elif is_instantaneous(_ds, variable):
-                cell_methods = 'area: mean time: point'
-            else:
-                if cell_methods == 'time: maximum':
-                    cell_methods = 'area: mean time: maximum'
-                elif cell_methods == 'time: minimum':
-                    cell_methods = 'area: mean time: minimum'
-                elif cell_methods == 'time: sum':
-                    cell_methods = 'area: mean time: sum'
-                elif cell_methods == 'time: mean':
-                    cell_methods = 'area: time: mean'
+        _ds = update_cell_methods(_ds, variable, output_frequency)
 
-            _ds[variable].attrs['cell_methods'] = cell_methods
+        # Update time_bounds after updating cell_methods
+        from axiom.drs.processing.ccam import center_times, generate_time_bounds
+
+        cell_methods = _ds[variable].attrs.get('cell_methods', '').lower()
+        time_agg_patterns = ["time: mean", "time: maximum", "time: minimum"]
+        is_time_aggregated = any(pattern in cell_methods for pattern in time_agg_patterns)
+        has_time_bnds = 'time_bnds' in _ds.data_vars or 'time_bnds' in _ds.coords
+
+        # only apply to data which is 1) not resampled, 2) does not have time_bounds, and 3) has cell_methods time aggregated
+        if is_time_aggregated and not has_time_bnds and not resampling_applied:
+            logger.info(f"Variable {variable} has aggregated cell_methods but missing time_bnds. Generating now.")
+            
+            # generate_time_bounds creates the actual bounds array
+            _ds['time_bnds'] = generate_time_bounds(_ds, output_frequency=output_frequency)
+
+            # Strip units/calendar from attrs to avoid the encoding conflict
+            if 'units' in _ds['time'].attrs:
+                del _ds['time'].attrs['units']
+
+            # Ensure time_bnds is in the encoding for the netCDF write
+            encoding['time_bnds'] = config.encoding['time_bnds']
+
+        logger.debug(f'Postprocessing done')
 
         # Get the full output filepath with string interpolation
         logger.debug('Working out output paths')
@@ -555,12 +618,18 @@ def process(
             del _ds[variable].encoding['coordinates']
 
         logger.debug(f'Writing {output_filepath}')
-        write = _ds.to_netcdf(
-            output_filepath,
-            format=output_format,
-            encoding=encoding,
-            unlimited_dims=['time']
-        )
+
+        write_kwargs = {
+            "path": output_filepath,
+            "format": output_format,
+            "encoding": encoding,
+        }
+
+        if not adu.is_time_invariant(_ds):
+            if 'time' in _ds.dims:
+                write_kwargs['unlimited_dims'] = ['time']
+
+        write = _ds.to_netcdf(**write_kwargs)
 
     elapsed_time = timer.stop()
     logger.info(f'DRS processing task took {elapsed_time} seconds.')
@@ -749,35 +818,56 @@ def filter_years(filepaths, year, offset=0):
     return _filepaths
 
 
-def update_cell_methods(ds, variable, dim='time', method='mean'):
-    """Update the cell_methods attribute on the data.
-
-    Args:
-        ds (xarray.Dataset): Data.
-        variable (str): Variable being processed.
-        dim (str): Dimension over which method was applied.
-        method (str): Method that was applied.
+def update_cell_methods(ds, variable, output_frequency):
     """
-
+    Update the cell_methods attribute using the CORDEX CSV table.
+    Fixes conflicts where variables have time_bnds but claim to be 'point'.
+    """
+    logger = au.get_logger(__name__)
     da = ds[variable]
+    
+    # Map internal frequency codes to CSV-compatible strings
+    FREQ_MAP = {
+        "1H": "1hr",
+        "6H": "6hr",
+        "1D": "day",
+        "1M": "mon",
+        "FX": "fx"
+    }
+    
+    target_freq = FREQ_MAP.get(output_frequency, output_frequency.lower())
+    
+    # 1. Primary Lookup: Specific Frequency
+    cell_methods = get_official_cell_method(variable, target_freq)
+    
+    # 2. Secondary Lookup: Fallback to 1hr if primary fails (common for 6hr variables)
+    if not cell_methods and target_freq != "1hr":
+        logger.info(f"Entry for {variable} at {target_freq} not found in CSV. Trying 1hr fallback...")
+        cell_methods = get_official_cell_method(variable, "1hr")
 
-    # If there is no cell_methods attribute, add it now.
-    if 'cell_methods' not in da.attrs.keys():
-        da.attrs['cell_methods'] = f'area: {dim}: {method}'
+    # 3. Final safety: Default if no entry exists
+    if not cell_methods:
+        logger.warning(f"No CSV entry found for {variable}. Using default 'area: mean'.")
+        cell_methods = "area: mean"
 
-    # If the cell method was point, change it
-    elif da.attrs['cell_methods'] == f'{dim}: point':
-        da.attrs['cell_methods'] = f'area: {dim}: {method}'
+    # Standardize the retrieved methods
+    new_methods = ' '.join(cell_methods.split())
+    current_methods = str(da.attrs.get('cell_methods', '')).lower()
+    has_time_bnds = 'time_bnds' in ds.variables or 'time_bnds' in ds.coords
 
-    # If another operation was already applied and doesn't match this, append
-    elif da.attrs['cell_methods'] != f'{dim}: {method}':
-        da.attrs['cell_methods'] = f'area: mean ' + da.attrs['cell_methods'] + f' {dim}: {method}'
-
-    # If cell method doesn't include area, add it
-    elif da.attrs['cell_methods'] == f'{dim}: {method}':
-        da.attrs['cell_methods'] = f'area: ' + da.attrs['cell_methods']
+    # Check for the specific conflict: File has bounds but metadata says 'point'
+    # AND the CORDEX table confirms it should actually be 'mean' (or max/min)
+    is_supposed_to_be_agg = any(m in new_methods.lower() for m in ["mean", "maximum", "minimum"])
+    
+    if "time: point" in current_methods and has_time_bnds and is_supposed_to_be_agg:
+        logger.info(f"Fixing metadata conflict for {variable}: 'time: point' -> '{new_methods}' (time_bnds detected)")
+        da.attrs['cell_methods'] = new_methods
+    else:
+        # Standard update for all other cases
+        da.attrs['cell_methods'] = new_methods
 
     ds[variable] = da
+    
     return ds
 
 

@@ -8,8 +8,9 @@ from axiom.utilities import get_installed_data_root, get_user_data_root
 
 # Order dependent, user to override system
 SCHEMA_DIRS = [
+#    os.path.join(get_user_data_root(), 'schemas'),
+    os.path.join(get_installed_data_root(), 'schemas'),
     os.path.join(get_user_data_root(), 'schemas'),
-    os.path.join(get_installed_data_root(), 'schemas')
 ]
 
 
