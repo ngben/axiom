@@ -537,16 +537,14 @@ def process(
                 'User has requested that filename times reflect the actual timeseries.')
 #            str_times = _ds.time.dt.strftime('%Y%m%d').data
             # Determine the format based on the output_frequency
-            if output_frequency in ['1H', '6H']:
-                date_format = '%Y%m%d%H%M'
-            elif output_frequency == '1D':
+            if output_frequency == '1D':
                 date_format = '%Y%m%d'
             elif output_frequency == '1M':
                 date_format = '%Y%m'
             elif output_frequency == 'fx':
                 date_format = None
             else:
-                raise ValueError(f"Unsupported output_frequency: {output_frequency}")
+                date_format = '%Y%m%d%H%M'
 
             # Apply the determined format to the times
             if date_format is not None:
@@ -828,6 +826,7 @@ def update_cell_methods(ds, variable, output_frequency):
     
     # Map internal frequency codes to CSV-compatible strings
     FREQ_MAP = {
+        "10min": "10min",
         "1H": "1hr",
         "6H": "6hr",
         "1D": "day",
