@@ -46,6 +46,103 @@
         "lon_min": 89.2,
         "lon_max": 182.0,
         "lat_min": -52.4,
-        "lat_max": 8.8
-    }
+        "lat_max": 8.7,
+        "rounding": 2
+    },
+    "AUS-20i_big": {
+        "dx": 0.2,
+        "lon_min": 89.1,
+        "lon_max": 206.7,
+        "lat_min": -52.5,
+        "lat_max": 12.3,
+        "rounding": 2
+    },
+    "AUS-20i": {
+        "dx": 0.2,
+        "lon_min": 89.3,
+        "lon_max": 181.9,
+        "lat_min": -52.3,
+        "lat_max": 8.7,
+        "rounding": 2
+    },
+    "AUST-4i": {
+        "dx": 0.04,
+        "lon_min": 108.02,
+        "lon_max": 159.9,
+        "lat_min": -45.69,
+        "lat_max": -5.01,
+        "rounding": 2
+    },
+    "MEL-01i": {
+        "dx": 0.01,
+        "lon_min": 143.0,
+        "lon_max": 146.8,
+        "lat_min": -39.4,
+        "lat_max": -36.3,
+        "rounding": 2
+    },
+    "SYD-01i": {
+        "dx": 0.01,
+        "lon_min": 148.4,
+        "lon_max": 152.5,
+        "lat_min": -35.2,
+        "lat_max": -32.1,
+        "rounding": 2
+    },
+    "BRI-01i": {
+        "dx": 0.01,
+        "lon_min": 150.7,
+        "lon_max": 154.4,
+        "lat_min": -29.3,
+        "lat_max": -25.6,
+        "rounding": 2
+    },
+    "PER-01i": {
+        "dx": 0.01,
+        "lon_min": 114.1,
+        "lon_max": 117.3,
+        "lat_min": -33.7,
+        "lat_max": -30.6,
+        "rounding": 2
+    },
+    "ADL-01i": {
+        "dx": 0.01,
+        "lon_min": 137.4,
+        "lon_max": 139.9,
+        "lat_min": -36.3,
+        "lat_max": -33.6,
+        "rounding": 2
+    },
+    "HBA-01i": {
+        "dx": 0.01,
+        "lon_min": 146.9,
+        "lon_max": 148.8,
+        "lat_min": -44.5,
+        "lat_max": -41.8,
+        "rounding": 2
+    },
+    "DRW-01i": {
+        "dx": 0.01,
+        "lon_min": 129.9,
+        "lon_max": 132.3,
+        "lat_min": -13.8,
+        "lat_max": -10.4,
+        "rounding": 2
+    },
+    "ACT-01i": {
+        "dx": 0.01,
+        "lon_min": 147.4,
+        "lon_max": 150.3,
+        "lat_min": -36.8,
+        "lat_max": -34.2,
+        "rounding": 2
+    },
+    "AUK-01i": {
+        "dx": 0.01,
+        "lon_min": 173.0,
+        "lon_max": 176.6,
+        "lat_min": -38.2,
+        "lat_max": -35.0,
+        "rounding": 2
+    },
 }
