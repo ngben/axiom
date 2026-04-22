@@ -8,7 +8,9 @@ Axiom is a prototype utility for validating/applying metadata templates for scie
 
 Documentation can be found in the docs directory of this repository.
 
-This version is for the CORDEX Flagship Pilot Sub-hourly extreme precipitation (SHEP) data and follows [CORDEX specifications](https://zenodo.org/records/15047096). NOTE: This requires drs_shep.json in the user's ~/.axiom directory
+This version is for the CORDEX Flagship Pilot Sub-hourly extreme precipitation (SHEP) data and follows [CORDEX specifications](https://zenodo.org/records/15047096). 
+
+NOTE: This requires drs_shep.json in the user's ~/.axiom directory
 
 Further information about SHEP can be found below:
 - [SHEP website](https://shep-fps.org/)
