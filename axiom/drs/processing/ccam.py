@@ -326,6 +326,10 @@ def is_instantaneous(ds, variable):
     if da.attrs['cell_methods'] == 'time: point':
         return True
 
+    # for fx variables, time: fixed is present
+    if da.attrs['cell_methods'] == 'time: fixed':
+        return True
+
     return False
 
 def has_height(ds, variable):
