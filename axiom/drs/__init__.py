@@ -19,7 +19,7 @@ import shutil
 from dask.distributed import progress, wait
 import numpy as np
 from axiom.supervisor import Supervisor
-from axiom.drs.processing.ccam import is_instantaneous
+from axiom.drs.processing.ccam import is_instantaneous_or_fixed
 from axiom.drs.processing.ccam import has_height
 from axiom.drs.processing.ccam import has_height_attr
 import cftime
@@ -420,9 +420,6 @@ def process(
         _ds = _ds.persist()
 
         # Monthly data should have the days truncated
-        # context['start_date'] = f'{year}0101' if output_frequency[-1] != 'M' else f'{year}01'
-        # context['end_date'] = f'{year}1231' if output_frequency[-1] != 'M' else f'{year}12'
-
         context['start_date'], context['end_date'] = adu.get_start_and_end_dates(year, output_frequency)
 
         # Tracking info
@@ -493,7 +490,7 @@ def process(
         logger.debug(f'Postprocessing done')
 
         # Update time_bnds encoding, drop time_bnds attributes
-        if resampling_applied or not is_instantaneous(_ds, variable):
+        if resampling_applied or not is_instantaneous_or_fixed(_ds, variable):
             _ds['time_bnds'].attrs = {}
             encoding['time_bnds'] = config.encoding['time_bnds']
 
@@ -508,11 +505,12 @@ def process(
         from axiom.drs.processing.ccam import center_times, generate_time_bounds
 
         cell_methods = _ds[variable].attrs.get('cell_methods', '').lower()
-        time_agg_patterns = ["time: mean", "time: maximum", "time: minimum"]
+        time_agg_patterns = ["time: mean", "time: maximum", "time: minimum", "time: sum"]
         is_time_aggregated = any(pattern in cell_methods for pattern in time_agg_patterns)
         has_time_bnds = 'time_bnds' in _ds.data_vars or 'time_bnds' in _ds.coords
 
-        # only apply to data which is 1) not resampled, 2) does not have time_bounds, and 3) has cell_methods time aggregated
+        # only apply to data which is 1) not resampled, 2) does not have time_bounds, and 3) has cell_methods time aggregated 
+        # e.g., 1hr rsus/rlus which had buggy cell_methods in CCAM
         if is_time_aggregated and not has_time_bnds and not resampling_applied:
             logger.info(f"Variable {variable} has aggregated cell_methods but missing time_bnds. Generating now.")
             
@@ -535,18 +533,15 @@ def process(
         if config.derive_filename_times_from_data:
             logger.info(
                 'User has requested that filename times reflect the actual timeseries.')
-#            str_times = _ds.time.dt.strftime('%Y%m%d').data
             # Determine the format based on the output_frequency
-            if output_frequency in ['1H', '6H']:
-                date_format = '%Y%m%d%H%M'
-            elif output_frequency == '1D':
+            if output_frequency == '1D':
                 date_format = '%Y%m%d'
             elif output_frequency == '1M':
                 date_format = '%Y%m'
             elif output_frequency == 'fx':
                 date_format = None
-            else:
-                raise ValueError(f"Unsupported output_frequency: {output_frequency}")
+            else: # default to YYYYmmDDHHMM
+                date_format = '%Y%m%d%H%M'
 
             # Apply the determined format to the times
             if date_format is not None:
@@ -607,11 +602,6 @@ def process(
         _ds['lat_bnds'] = _ds['lat_bnds'].astype('float64')
         _ds['lon_bnds'] = _ds['lon_bnds'].round(decimals=rounding)
         _ds['lat_bnds'] = _ds['lat_bnds'].round(decimals=rounding)
-
-#        # Update height scalar coordinate encoding # this shouldn't be working as the scalar coordinate is now an attribute
-#        _has_height, hcoord = has_height(_ds, variable)
-#        if _has_height:
-#            encoding[hcoord] = config.encoding[hcoord]
 
         # remove encoding in variable
         if 'coordinates' in _ds[variable].encoding:

@@ -232,14 +232,14 @@ def preprocess_ccam(ds, **kwargs):
     ds = _set_version_metadata(ds, version)
 
     # Extract the lat/lon bounds as well.
-    _is_instantaneous = is_instantaneous(ds, kwargs['variable'])
+    _is_instantaneous_or_fixed = is_instantaneous_or_fixed(ds, kwargs['variable'])
     _has_height, hcoord = has_height(ds, kwargs['variable'])
 
     # Start with the basic list of variables to keep
     vars_to_keep = ['lat_bnds', 'lon_bnds', 'crs']
 
     # Include time_bnds only if not instantaneous
-    if not _is_instantaneous:
+    if not _is_instantaneous_or_fixed:
         vars_to_keep.append('time_bnds')
 
     # Include height coordinate if present
@@ -284,14 +284,13 @@ def postprocess_ccam(ds, **kwargs):
             _has_height_attr, hcoord = has_height_attr(ds, kwargs['variable'])
             if _has_height_attr and 'time' in ds[hcoord].dims:
                 ds[hcoord] = ds[hcoord].isel(time=0).drop('time')
-#        ds['time_bnds'] = au.isolate_coordinate(ds.time_bnds, 'time', drop=True)
 
     # Center the times for non-instantaneous data.
-    _is_instantaneous = is_instantaneous(ds, kwargs['variable'])
+    _is_instantaneous_or_fixed = is_instantaneous_or_fixed(ds, kwargs['variable'])
     _resampling_applied = kwargs['resampling_applied']
     _output_frequency = kwargs['output_frequency']
 
-    logger.debug(f'is_instantaneous = {_is_instantaneous}')
+    logger.debug(f'is_instantaneous_or_fixed = {_is_instantaneous_or_fixed}')
     logger.debug(f'resampling_applied = {_resampling_applied}')
     if _resampling_applied == True:
         logger.debug(f"TIME CENTERING TRIGGERED")
@@ -302,32 +301,38 @@ def postprocess_ccam(ds, **kwargs):
         ds['time'].attrs['standard_name'] = 'time'
         ds['time'].attrs['bounds'] = 'time_bnds'
 
-#    if not adu.is_time_invariant(ds):
+        # remove units from time
         if 'units' in ds['time'].attrs:
             del ds['time'].attrs['units']
 
     return ds
 
-def is_instantaneous(ds, variable):
+def is_instantaneous_or_fixed(ds, variable):
     """Checks for the presence of CCAM-specific flags indicating that a variable is instantaneous.
 
     Args:
         ds (xarray.Dataset): Data.
         variable (str): Variable currently being processed.
+Returns:
+        bool: True if the variable is instantaneous or fixed, False otherwise.
     """
+    
+    logger = au.get_logger(__name__)
 
-    da = ds[variable]
-
-    # if cell_methods is missing
-    if 'cell_methods' not in da.attrs.keys():
+    # Safety check: if variable isn't in dataset, we can't check it
+    if variable not in ds:
+        logger.debug(f"ERROR: Variable '{variable}' not found in the dataset.")
         return True
 
-    # time: point is present
-    if da.attrs['cell_methods'] == 'time: point':
+    # Get cell_methods, default to empty string if missing
+    cell_methods = ds[variable].attrs.get('cell_methods', '')
+
+    # If cell_methods is empty string, assume instantaneous
+    if not cell_methods:
         return True
 
-    # for fx variables, time: fixed is present
-    if da.attrs['cell_methods'] == 'time: fixed':
+    instantaneous_patterns = ['time: point', 'time: fixed']
+    if any(pattern in cell_methods for pattern in instantaneous_patterns):
         return True
 
     return False
