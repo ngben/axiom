@@ -467,8 +467,9 @@ def detect_input_frequency(ds):
     total_seconds =  pd.to_timedelta([diff]).total_seconds()
 
     # TODO: These should be configurable
-    intervals = '1H,3H,6H,1D,1M'.split(',')
+    intervals = '5min,1H,3H,6H,1D,1M'.split(',')
     seconds = [
+        5*60,
         1*60*60,
         3*60*60,
         6*60*60,

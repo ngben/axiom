@@ -4071,6 +4071,126 @@
                     "m2"
                 ]
             }
+        },
+        "va": {
+            "long_name": {
+                "type": "string",
+                "allowed": [
+                    "Northward Wind"
+                ]
+            },
+            "standard_name": {
+                "type": "string",
+                "allowed": [
+                    "northward_wind"
+                ]
+            },
+            "units": {
+                "type": "string",
+                "allowed": [
+                    "m s-1"
+                ]
+            }
+        },
+        "ua": {
+            "long_name": {
+                "type": "string",
+                "allowed": [
+                    "Eastward Wind"
+                ]
+            },
+            "standard_name": {
+                "type": "string",
+                "allowed": [
+                    "eastward_wind"
+                ]
+            },
+            "units": {
+                "type": "string",
+                "allowed": [
+                    "m s-1"
+                ]
+            }
+        },
+        "ta": {
+            "long_name": {
+                "type": "string",
+                "allowed": [
+                    "Air Temperature"
+                ]
+            },
+            "standard_name": {
+                "type": "string",
+                "allowed": [
+                    "air_temperature"
+                ]
+            },
+            "units": {
+                "type": "string",
+                "allowed": [
+                    "K"
+                ]
+            }
+        },
+        "hus": {
+            "long_name": {
+                "type": "string",
+                "allowed": [
+                    "Specific Humidity"
+                ]
+            },
+            "standard_name": {
+                "type": "string",
+                "allowed": [
+                    "specific_humidity"
+                ]
+            },
+            "units": {
+                "type": "string",
+                "allowed": [
+                    "1"
+                ]
+            }
+        },
+        "zg": {
+            "long_name": {
+                "type": "string",
+                "allowed": [
+                    "Geopotential Height"
+                ]
+            },
+            "standard_name": {
+                "type": "string",
+                "allowed": [
+                    "geopotential_height"
+                ]
+            },
+            "units": {
+                "type": "string",
+                "allowed": [
+                    "m"
+                ]
+            }
+        },
+        "wa": {
+            "long_name": {
+                "type": "string",
+                "allowed": [
+                    "Upward Air Velocity"
+                ]
+            },
+            "standard_name": {
+                "type": "string",
+                "allowed": [
+                    "upward_air_velocity"
+                ]
+            },
+            "units": {
+                "type": "string",
+                "allowed": [
+                    "m s-1"
+                ]
+            }
         }
     }
 }

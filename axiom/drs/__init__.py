@@ -19,7 +19,7 @@ import shutil
 from dask.distributed import progress, wait
 import numpy as np
 from axiom.supervisor import Supervisor
-from axiom.drs.processing.ccam import is_instantaneous
+from axiom.drs.processing.ccam import is_instantaneous_or_fixed
 from axiom.drs.processing.ccam import has_height
 from axiom.drs.processing.ccam import has_height_attr
 import cftime
@@ -110,7 +110,7 @@ def consume(json_filepath):
     payload = json.loads(open(json_filepath, 'r').read())
 
     # Allow rerun of failed variables (do this after all other variables have been processed!)
-    config = load_config('drs_20i')
+    config = load_config('drs_shep')
     failures_path = f'{json_filepath}_001.failed'
     if config.rerun_failures and os.path.exists(failures_path):
         failed_variables = open(failures_path, 'r').read().splitlines()
@@ -171,7 +171,7 @@ def process(
 
     # Load the logger and configuration
     logger = au.get_logger(__name__)
-    config = load_config('drs_20i')
+    config = load_config('drs_shep')
 
     # Dump the job id if available
     if 'PBS_JOBID' in os.environ.keys():
@@ -273,9 +273,7 @@ def process(
     # Subset temporally
     if not adu.is_time_invariant(ds):
         logger.info(f'Subsetting times to {start_year}')
-        # ixs = np.where(ds['time.year'] == start_year)
         time_slice = slice(f'{start_year}-01-01', f'{start_year}-12-31')
-        # ds = ds.isel(time=slice(ixs[0][0], ixs[0][-1] + 1))
         ds = ds.sel(time=time_slice, drop=True)
 
     # Skip over the file if subdaily resampling is disabled, this will stop 
@@ -420,9 +418,6 @@ def process(
         _ds = _ds.persist()
 
         # Monthly data should have the days truncated
-        # context['start_date'] = f'{year}0101' if output_frequency[-1] != 'M' else f'{year}01'
-        # context['end_date'] = f'{year}1231' if output_frequency[-1] != 'M' else f'{year}12'
-
         context['start_date'], context['end_date'] = adu.get_start_and_end_dates(year, output_frequency)
 
         # Tracking info
@@ -493,7 +488,7 @@ def process(
         logger.debug(f'Postprocessing done')
 
         # Update time_bnds encoding, drop time_bnds attributes
-        if resampling_applied or not is_instantaneous(_ds, variable):
+        if resampling_applied or not is_instantaneous_or_fixed(_ds, variable):
             _ds['time_bnds'].attrs = {}
             encoding['time_bnds'] = config.encoding['time_bnds']
 
@@ -535,7 +530,6 @@ def process(
         if config.derive_filename_times_from_data:
             logger.info(
                 'User has requested that filename times reflect the actual timeseries.')
-#            str_times = _ds.time.dt.strftime('%Y%m%d').data
             # Determine the format based on the output_frequency
             if output_frequency == '1D':
                 date_format = '%Y%m%d'
@@ -671,7 +665,7 @@ def process_multi(variables, domain, project, **kwargs):
 
     # Load the project metadata
     project_config = load_config('projects')[project]
-    config = load_config('drs_20i')
+    config = load_config('drs_shep')
 
     # Load all variables if nothing was supplied
     if not variables:
@@ -826,8 +820,9 @@ def update_cell_methods(ds, variable, output_frequency):
     
     # Map internal frequency codes to CSV-compatible strings
     FREQ_MAP = {
-        "10min": "10min",
+        "5min": "5min",
         "1H": "1hr",
+        "3H": "3hr",
         "6H": "6hr",
         "1D": "day",
         "1M": "mon",
@@ -891,7 +886,7 @@ def is_error_recoverable(exception):
     Returns:
         bool : True if recoverable, False otherwise.
     """
-    config = load_config('drs_20i')
+    config = load_config('drs_shep')
     return adu.is_error_recoverable(exception, config.get('recoverable_errors', list()))
 
 
@@ -903,7 +898,7 @@ def track_failure(variable, exception):
         exception (Exception): Exception raised.
     """
 
-    config = load_config('drs_20i')
+    config = load_config('drs_shep')
 
     if config.track_failures and 'AXIOM_LOG_DIR' in os.environ.keys() and 'PBS_JOBNAME' in os.environ.keys():
 

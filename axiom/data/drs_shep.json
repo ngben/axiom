@@ -40,7 +40,7 @@
     "track_failures": true,
     "metadata_defaults": {
         "contact": "%(contact)s",
-        "Conventions": "CF-1.7",
+        "Conventions": "CF-1.11",
         "CORDEX_domain": "%(domain)s",
         "creation_date": "%(creation_date)s",
         "driving_experiment_name": "%(driving_experiment_name)s",
@@ -62,7 +62,7 @@
         "tracking_id": "%(uuid)s"
     },
     "frequency_mapping":{
-        "10min": "10min",
+        "5min": "5min",
         "3H": "3hr",
         "1D": "day",
         "1M": "mon",
@@ -75,6 +75,7 @@
         "variables": {
             "dtype": "float32",
             "_FillValue": 1e20,
+            "missing_value": 1e20,
             "zlib": true,
             "complevel": 1
         },
