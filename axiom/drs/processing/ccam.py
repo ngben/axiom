@@ -16,6 +16,7 @@ def add_month(year, month):
     else:
         return year, month + 1
 
+
 def get_midpoint(year, month, calendar='standard'):
     """Returns the midpoint of the specified month, accounting for the calendar type.
 
@@ -27,7 +28,6 @@ def get_midpoint(year, month, calendar='standard'):
     Returns:
         datetime: Midpoint of the month.
     """
-
     logger = au.get_logger(__name__)
     if calendar == '360_day':
         days_in_month = 30
@@ -60,7 +60,6 @@ def center_times(ds, output_frequency):
     Returns:
         xarray.Dataset : Data with times centered.
     """
-
     logger = au.get_logger(__name__)
     # non-monthly data is simple, just halve the delta
     if output_frequency != '1M':
@@ -104,8 +103,17 @@ def center_times(ds, output_frequency):
     ds.time.encoding['calendar'] = original_calendar
     return ds
 
-# Generate time bounds for the resampled data
+
 def generate_time_bounds(resampled_ds, output_frequency):
+    """Generates time_bnds for resampled data
+
+    Args:
+        ds (xarray.Dataset): Resampled Dataset
+        output_frequency: The frequency the data was resampled to
+
+    Returns:
+        time_bnds (float)
+    """
     logger = au.get_logger(__name__)
     start_times = []
     end_times = []
@@ -173,6 +181,7 @@ def generate_time_bounds(resampled_ds, output_frequency):
 
     return time_bnds
 
+
 def _detect_version(ds):
     """The CCAM version can be detected from the history metadata.
 
@@ -215,7 +224,6 @@ def preprocess_ccam(ds, **kwargs):
     Returns:
         xarray.Dataset: Dataset with preprocessing applied.
     """
-
     variable = kwargs['variable']
 
     # Rename metadata keys if needed
@@ -254,6 +262,7 @@ def preprocess_ccam(ds, **kwargs):
 
     return ds
 
+
 def postprocess_ccam(ds, **kwargs):
     """For CORDEX processing, there is some minor postprocessing that happens.
 
@@ -263,7 +272,6 @@ def postprocess_ccam(ds, **kwargs):
     Returns:
         xarray.Dataset: Data with postprocessing applied.
     """
-
     logger = au.get_logger(__name__)
 
     # Strip out the extra metadata keys (Marcus 20220802)
@@ -307,6 +315,7 @@ def postprocess_ccam(ds, **kwargs):
 
     return ds
 
+
 def is_instantaneous_or_fixed(ds, variable):
     """Checks for the presence of CCAM-specific flags indicating that a variable is instantaneous.
 
@@ -316,7 +325,6 @@ def is_instantaneous_or_fixed(ds, variable):
 Returns:
         bool: True if the variable is instantaneous or fixed, False otherwise.
     """
-    
     logger = au.get_logger(__name__)
 
     # Safety check: if variable isn't in dataset, we can't check it
@@ -337,6 +345,7 @@ Returns:
 
     return False
 
+
 def has_height(ds, variable):
     """Checks for the presence of a scalar coordinate (e.g., a fixed height like h2 or height) 
     indicating that a variable is at a single level.
@@ -353,6 +362,7 @@ def has_height(ds, variable):
         if coord.ndim == 0:
             return True, name
     return False, None
+
 
 def has_height_attr(ds, variable):
     """Checks for the presence of attribute 'coordinates'
@@ -373,6 +383,7 @@ def has_height_attr(ds, variable):
         return True, hcoordinate
 
     return False, None
+
 
 def has_time_bnds(ds):
     """Checks if the dataset contains a time bounds variable.
