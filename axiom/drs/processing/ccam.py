@@ -288,7 +288,8 @@ def postprocess_ccam(ds, **kwargs):
         ds['lat_bnds'] = au.isolate_coordinate(ds.lat_bnds, 'lat', drop=True)
         ds['lon_bnds'] = au.isolate_coordinate(ds.lon_bnds, 'lon', drop=True)
         if not adu.is_time_invariant(ds):
-            ds['crs'] = ds['crs'].isel(time=0).drop('time') # drop time dimension for crs
+            if 'time' in ds['crs'].dims:
+                ds['crs'] = ds['crs'].isel(time=0).drop('time') # drop time dimension for crs
             _has_height_attr, hcoord = has_height_attr(ds, kwargs['variable'])
             if _has_height_attr and 'time' in ds[hcoord].dims:
                 ds[hcoord] = ds[hcoord].isel(time=0).drop('time')

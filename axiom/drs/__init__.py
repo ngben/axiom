@@ -133,7 +133,7 @@ def process(
     variable,
     project,
     model,
-    domain,
+    domain_id,
     start_year, end_year,
     output_frequency,
     level=None,
@@ -332,27 +332,27 @@ def process(
     schema = axs.load_schema(schema_key)
     ds = au.apply_schema(ds, schema)
 
-    logger.info(f'Parsing domain {domain}')
-    if isinstance(domain, str):
+    logger.info(f'Parsing domain_id {domain_id}')
+    if isinstance(domain_id, str):
 
-        # Registered domain
-        if adu.is_registered_domain(domain):
-            domain = adu.get_domain(domain)
+        # Registered domain_id
+        if adu.is_registered_domain(domain_id):
+            domain_id = adu.get_domain(domain_id)
 
         # Attempt to parse
         else:
-            domain = Domain.from_directive(domain)
+            domain_id = Domain.from_directive(domain_id)
 
     # We will only otherwise accept a domain object.
-    elif isinstance(domain, Domain) == False:
-        raise Exception(f'Unable to parse domain {domain}.')
+    elif isinstance(domain_id, Domain) == False:
+        raise Exception(f'Unable to parse domain_id {domain_id}.')
 
-    logger.debug('Domain: ' + domain.to_directive())
-    rounding = int(domain.rounding)
+    logger.debug('Domain: ' + domain_id.to_directive())
+    rounding = int(domain_id.rounding)
 
     # Subset the geographical domain
     logger.debug('Subsetting geographical domain.')
-    ds = domain.subset_xarray(ds, drop=True)
+    ds = domain_id.subset_xarray(ds, drop=True)
 
     # TODO: Need to find a less manual way to do this.
     for year in adu.generate_years_list(start_year, end_year):
@@ -650,12 +650,12 @@ def load_variable_config(project_config):
     return variables
 
 
-def process_multi(variables, domain, project, **kwargs):
+def process_multi(variables, domain_id, project, **kwargs):
     """Start a processing chain of multiple variables.
 
     Args:
         variables (list): List of variables to process.
-        domain (str): Domain to process from domains.json.
+        domain_id (str): Domain to process from domains.json.
         project (str): Project metadata to use from projects.json.
         **kwargs: Additional keyword arguments to pass to the processing chain.
     """
@@ -720,7 +720,7 @@ def process_multi(variables, domain, project, **kwargs):
                 logger.info(f'Processing {variable} {output_frequency}')
                 instance_kwargs = kwargs.copy()
                 instance_kwargs['variable'] = variable
-                instance_kwargs['domain'] = domain
+                instance_kwargs['domain_id'] = domain_id
                 instance_kwargs['project'] = project
                 instance_kwargs['output_frequency'] = output_frequency
 
