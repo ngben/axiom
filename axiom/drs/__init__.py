@@ -36,7 +36,6 @@ def load_dataset_table():
         return True
 
     url = "https://raw.githubusercontent.com/WCRP-CORDEX/data-request-table/main/cmor-table/datasets.csv"
-#    local_path = "/g/data/xv83/users/bxn599/aus20i_check_all/datasets.csv"
     local_path = os.path.join(au.get_installed_data_root(), 'datasets.csv')
 
     try:

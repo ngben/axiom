@@ -47,7 +47,7 @@ def get_parser(config=None, parent=None):
         parser = argparse.ArgumentParser()
     # ...or add one to the top-level CLI
     else:
-        parser = parent.add_parser('drs_20i')
+        parser = parent.add_parser('drs_shep')
 
     parser.description = "DRS utility"
 
@@ -166,7 +166,7 @@ def drs_launch(path, jobscript, log_dir, batches=None, dry_run=True, interactive
             job_name = f'{job_name}_{batch_str}'
 
             # Assemble the command from configuration
-            config = load_config('drs_20i')
+            config = load_config('drs_shep')
             directives = config['launch']['directives']
 
             # Add interactive flag when dry running

@@ -11,8 +11,8 @@ def test_boolean_fallback():
 def test_keys_in_installed_drs_json():
     """A test to ensure that new local dev keys have been added to the data/drs.json file."""
 
-    user_config = load_config('drs_20i', defaults_only=False)
-    default_config = load_config('drs_20i', defaults_only=True)
+    user_config = load_config('drs_shep', defaults_only=False)
+    default_config = load_config('drs_shep', defaults_only=True)
 
     missing_keys = list()
 

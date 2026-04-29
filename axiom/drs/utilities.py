@@ -593,7 +593,7 @@ def filter_by_variable_name(filepaths, variable):
     Returns:
         list : List of filepaths that include the variable name.
     """
-    config = load_config('drs_20i')
+    config = load_config('drs_shep')
 
     # Bail out if not filtering
     if not config['filename_filtering']['variable']:
