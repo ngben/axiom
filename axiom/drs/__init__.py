@@ -484,7 +484,7 @@ def process(
 
         _ds = postprocess(_ds)
 
-        logger.debug(f'Postprocessing done')
+        logger.debug(f'Postprocessor done, continue postprocessing')
 
         # Update time_bnds encoding, drop time_bnds attributes
         if resampling_applied or not is_instantaneous_or_fixed(_ds, variable):
@@ -522,70 +522,6 @@ def process(
 
         logger.debug(f'Postprocessing done')
 
-        # Get the full output filepath with string interpolation
-        logger.debug('Working out output paths')
-
-        # Derive the start/end date strings from the actual timeseries and override
-        if config.derive_filename_times_from_data:
-            logger.info(
-                'User has requested that filename times reflect the actual timeseries.')
-            # Determine the format based on the output_frequency
-            if output_frequency == '1D':
-                date_format = '%Y%m%d'
-            elif output_frequency == '1M':
-                date_format = '%Y%m'
-            elif output_frequency == 'fx':
-                date_format = None
-            else:
-                date_format = '%Y%m%d%H%M'
-
-            # Apply the determined format to the times
-            if date_format is not None:
-                str_times = _ds.time.dt.strftime(date_format).data
-                context['start_date'] = str_times[0]
-                context['end_date'] = str_times[-1]
-                logger.debug(
-                    'start_date = %(start_date)s, end_date = %(end_date)s' % context)
-
-        drs_path = adu.get_template(config, 'drs_path') % context
-        filename_template = adu.get_template(config, 'filename')
-
-        # Override for fixed variables
-        if adu.is_time_invariant(_ds):
-            logger.debug('Overriding output filename template with fixed alternative.')
-            filename_template = adu.get_template(config, 'filename_fixed')
-
-        # Assemble the output filepath
-        output_filename = filename_template % context
-        output_filepath = os.path.join(
-            output_directory, drs_path, output_filename)
-        logger.debug(f'output_filepath = {output_filepath}')
-
-        # Skip if already there and overwrite is not set, otherwise continue
-        if os.path.isfile(output_filepath) and overwrite == False:
-            logger.debug(
-                f'{output_filepath} exists and overwrite is set to False, skipping.')
-            continue
-
-        # Check for uninterpolated keys in the output path, which should fail at this point.
-        uninterpolated_keys = adu.get_uninterpolated_placeholders(
-            output_filepath)
-
-        if len(uninterpolated_keys) > 0:
-            logger.error('Uninterpolated keys remain in the output filepath.')
-            logger.error(f'output_filepath = {output_filepath}')
-            raise DRSContextInterpolationException(uninterpolated_keys)
-
-        # Create the output directory
-        output_dir = os.path.dirname(output_filepath)
-        logger.debug(f'Creating {output_dir}')
-        os.makedirs(output_dir, exist_ok=True)
-
-        # Supervise this job to ensure that it does in fact complete.
-        with Supervisor(seconds=config.processing_timeout_seconds, error_msg=f'Variable {variable} took too long to complete, moving on.'):
-            logger.info('Waiting for computations to finish.')
-            progress(_ds)
-
         # Get the output format from config
         output_format = config.get('output_format', 'NETCDF4')
 
@@ -599,32 +535,99 @@ def process(
         _ds['lon_bnds'] = _ds['lon_bnds'].round(decimals=rounding)
         _ds['lat_bnds'] = _ds['lat_bnds'].round(decimals=rounding)
 
-#        # Update height scalar coordinate encoding # this shouldn't be working as the scalar coordinate is now an attribute
-#        _has_height, hcoord = has_height(_ds, variable)
-#        if _has_height:
-#            encoding[hcoord] = config.encoding[hcoord]
-
         # remove encoding in variable
         if 'coordinates' in _ds[variable].encoding:
             del _ds[variable].encoding['coordinates']
 
-        logger.debug(f'Writing {output_filepath}')
+        # Get the full output filepath with string interpolation
+        logger.debug('Working out output paths and chunking dataset')
 
-        write_kwargs = {
-            "path": output_filepath,
-            "format": output_format,
-            "encoding": encoding,
-        }
+        # CHUNK THE DATASET IF 5MIN
+        if not time_invariant and output_frequency == '5min':
+            unique_days = np.unique(_ds.time.dt.strftime('%Y-%m-%d').data)
+            write_chunks = [_ds.sel(time=day) for day in unique_days]
+            logger.info(f"Chunking 5min data into {len(write_chunks)} daily files.")
+        else:
+            write_chunks = [_ds]
 
-        if not adu.is_time_invariant(_ds):
-            if 'time' in _ds.dims:
-                write_kwargs['unlimited_dims'] = ['time']
+        for _chunk_ds in write_chunks:
 
-        write = _ds.to_netcdf(**write_kwargs)
+            # Derive the start/end date strings from the actual timeseries and override
+            if config.derive_filename_times_from_data or output_frequency == '5min':
+                # Determine the format based on the output_frequency
+                if output_frequency == '1D':
+                    date_format = '%Y%m%d'
+                elif output_frequency == '1M':
+                    date_format = '%Y%m'
+                elif output_frequency == 'fx':
+                    date_format = None
+                else:
+                    date_format = '%Y%m%d%H%M'
+
+                if date_format is not None:
+                    str_times = _chunk_ds.time.dt.strftime(date_format).data
+                    if len(str_times) > 0:
+                        context['start_date'] = str_times[0]
+                        context['end_date'] = str_times[-1]
+                    logger.debug(
+                        'start_date = %(start_date)s, end_date = %(end_date)s' % context)
+
+            drs_path = adu.get_template(config, 'drs_path') % context
+            filename_template = adu.get_template(config, 'filename')
+
+            # Override for fixed variables
+            if adu.is_time_invariant(_chunk_ds):
+                logger.debug('Overriding output filename template with fixed alternative.')
+                filename_template = adu.get_template(config, 'filename_fixed')
+
+            # Assemble the output filepath
+            output_filename = filename_template % context
+            output_filepath = os.path.join(
+                output_directory, drs_path, output_filename)
+            logger.debug(f'output_filepath = {output_filepath}')
+
+            # Skip if already there and overwrite is not set, otherwise continue
+            if os.path.isfile(output_filepath) and overwrite == False:
+                logger.debug(
+                    f'{output_filepath} exists and overwrite is set to False, skipping.')
+                continue
+
+            # Check for uninterpolated keys in the output path, which should fail at this point.
+            uninterpolated_keys = adu.get_uninterpolated_placeholders(
+                output_filepath)
+
+            if len(uninterpolated_keys) > 0:
+                logger.error('Uninterpolated keys remain in the output filepath.')
+                logger.error(f'output_filepath = {output_filepath}')
+                raise DRSContextInterpolationException(uninterpolated_keys)
+
+            # Create the output directory
+            output_dir = os.path.dirname(output_filepath)
+            logger.debug(f'Creating {output_dir}')
+            os.makedirs(output_dir, exist_ok=True)
+
+            # Supervise this job to ensure that it does in fact complete.
+            with Supervisor(seconds=config.processing_timeout_seconds, error_msg=f'Variable {variable} took too long to complete, moving on.'):
+                logger.info('Waiting for computations to finish.')
+                progress(_chunk_ds)
+
+            logger.debug(f'Writing {output_filepath}')
+
+            write_kwargs = {
+                "path": output_filepath,
+                "format": output_format,
+                "encoding": encoding,
+            }
+
+            if not adu.is_time_invariant(_chunk_ds):
+                if 'time' in _chunk_ds.dims:
+                    write_kwargs['unlimited_dims'] = ['time']
+
+            write = _chunk_ds.to_netcdf(**write_kwargs)
 
     elapsed_time = timer.stop()
     logger.info(f'DRS processing task took {elapsed_time} seconds.')
-
+    
 
 def load_variable_config(project_config):
     """Extract the variable configuration out of the project configuration.
