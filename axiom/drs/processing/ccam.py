@@ -129,8 +129,8 @@ def generate_time_bounds(resampled_ds, output_frequency):
         if isinstance(current_date, cftime.datetime):
             current_datetime = current_date
             if output_frequency == '1H':
-                start_time = current_datetime - timedelta(hours=1)
-                end_time = current_datetime + timedelta(hours=1)
+                start_time = current_datetime - timedelta(minutes=30)
+                end_time = current_datetime + timedelta(minutes=30)
             elif output_frequency == '6H':
                 start_time = current_datetime - timedelta(hours=3)
                 end_time = current_datetime + timedelta(hours=3)
@@ -148,8 +148,8 @@ def generate_time_bounds(resampled_ds, output_frequency):
         else:
             # Handle numpy datetime64 objects
             if output_frequency == '1H':
-                start_time = current_date + np.timedelta64(-1, 'h')
-                end_time = current_date + np.timedelta64(1, 'h')
+                start_time = current_date + np.timedelta64(-30, 'm')
+                end_time = current_date + np.timedelta64(30, 'm')
             elif output_frequency == '6H':
                 start_time = current_date + np.timedelta64(-3, 'h')
                 end_time = current_date + np.timedelta64(3, 'h')
