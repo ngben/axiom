@@ -128,14 +128,17 @@ def generate_time_bounds(resampled_ds, output_frequency):
         if isinstance(current_date, cftime.datetime):
             current_datetime = current_date
             if output_frequency == '1H':
-                start_time = current_datetime - timedelta(hours=1)
-                end_time = current_datetime + timedelta(hours=1)
+                start_time = current_datetime - timedelta(minutes=30)
+                end_time = current_datetime + timedelta(minutes=30)
             elif output_frequency == '6H':
                 start_time = current_datetime - timedelta(hours=3)
                 end_time = current_datetime + timedelta(hours=3)
             elif output_frequency == '1D':
                 start_time = current_datetime - timedelta(hours=12)
                 end_time = current_datetime + timedelta(hours=12)
+            elif output_frequency == '5min':
+                start_time = current_datetime - timedelta(seconds=150)
+                end_time = current_datetime + timedelta(seconds=150)
             elif output_frequency == '1M':
                 start_time = cftime.datetime(current_datetime.year, current_datetime.month, 1, calendar=calendar_type)
                 if current_datetime.month == 12:
@@ -147,14 +150,17 @@ def generate_time_bounds(resampled_ds, output_frequency):
         else:
             # Handle numpy datetime64 objects
             if output_frequency == '1H':
-                start_time = current_date + np.timedelta64(-1, 'h')
-                end_time = current_date + np.timedelta64(1, 'h')
+                start_time = current_date + np.timedelta64(-30, 'm')
+                end_time = current_date + np.timedelta64(30, 'm')
             elif output_frequency == '6H':
                 start_time = current_date + np.timedelta64(-3, 'h')
                 end_time = current_date + np.timedelta64(3, 'h')
             elif output_frequency == '1D':
                 start_time = current_date + np.timedelta64(-12, 'h')
                 end_time = current_date + np.timedelta64(12, 'h')
+            elif output_frequency == '5min':
+                start_time = current_date + np.timedelta64(-150, 's')
+                end_time = current_date + np.timedelta64(150, 's')
             elif output_frequency == '1M':
                 year = current_date.astype('datetime64[Y]').astype(int) + 1970
                 month = (current_date.astype('datetime64[M]').astype(int) % 12) + 1

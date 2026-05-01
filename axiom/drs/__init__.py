@@ -273,6 +273,9 @@ def process(
     if not adu.is_time_invariant(ds):
         logger.info(f'Subsetting times to {start_year}')
         time_slice = slice(f'{start_year}-01-01', f'{start_year}-12-31')
+        ds['time'] = ds['time'].dt.round('1s')
+        if 'time_bnds' in ds:
+            ds['time_bnds'] = ds['time_bnds'].dt.round('1s')
         ds = ds.sel(time=time_slice, drop=True)
 
     # Skip over the file if subdaily resampling is disabled, this will stop 
@@ -470,6 +473,17 @@ def process(
         encoding['lon_bnds'] = config.encoding['lon_bnds']
         encoding['crs'] = config.encoding['crs']
 
+        # Add chunking output encoding
+        num_dims = len(ds[variable].dims)
+        if num_dims == 4:
+#            encoding[variable]['chunksizes'] = (1, 1, 48, 48)
+            encoding[variable]['chunksizes'] = (92, 1, 62, 82)
+        elif num_dims == 3:
+#            encoding[variable]['chunksizes'] = (1, 48, 48)
+            encoding[variable]['chunksizes'] = (92, 62, 82)
+        else:
+            encoding[variable]['chunksizes'] = None
+
         # Postprocess data if required
         postprocessor = adu.load_postprocessor(postprocessor)
 
@@ -509,7 +523,7 @@ def process(
         # only apply to data which is 1) not resampled, 2) does not have time_bounds, and 3) has cell_methods time aggregated
         if is_time_aggregated and not has_time_bnds and not resampling_applied:
             logger.info(f"Variable {variable} has aggregated cell_methods but missing time_bnds. Generating now.")
-            
+
             # generate_time_bounds creates the actual bounds array
             _ds['time_bnds'] = generate_time_bounds(_ds, output_frequency=output_frequency)
 
@@ -532,8 +546,8 @@ def process(
         _ds.coords['lat'] = _ds.coords['lat'].round(decimals=rounding)
         _ds['lon_bnds'] = _ds['lon_bnds'].astype('float64')
         _ds['lat_bnds'] = _ds['lat_bnds'].astype('float64')
-        _ds['lon_bnds'] = _ds['lon_bnds'].round(decimals=rounding)
-        _ds['lat_bnds'] = _ds['lat_bnds'].round(decimals=rounding)
+        _ds['lon_bnds'] = _ds['lon_bnds'].round(decimals=rounding+1)
+        _ds['lat_bnds'] = _ds['lat_bnds'].round(decimals=rounding+1)
 
         # remove encoding in variable
         if 'coordinates' in _ds[variable].encoding:
@@ -547,10 +561,24 @@ def process(
             unique_days = np.unique(_ds.time.dt.strftime('%Y-%m-%d').data)
             write_chunks = [_ds.sel(time=day) for day in unique_days]
             logger.info(f"Chunking 5min data into {len(write_chunks)} daily files.")
+
         else:
             write_chunks = [_ds]
 
         for _chunk_ds in write_chunks:
+
+            # recalculate time_bnds
+            has_time_bnds = 'time_bnds' in _chunk_ds.data_vars or 'time_bnds' in _chunk_ds.coords
+            if has_time_bnds:
+                # generate_time_bounds creates the actual bounds array
+                _chunk_ds['time_bnds'] = generate_time_bounds(_chunk_ds, output_frequency=output_frequency)
+
+                # Strip units/calendar from attrs to avoid the encoding conflict
+                if 'units' in _chunk_ds['time'].attrs:
+                    del _chunk_ds['time'].attrs['units']
+
+                # Ensure time_bnds is in the encoding for the netCDF write
+                encoding['time_bnds'] = config.encoding['time_bnds']
 
             # Derive the start/end date strings from the actual timeseries and override
             if config.derive_filename_times_from_data or output_frequency == '5min':
@@ -612,6 +640,12 @@ def process(
                 progress(_chunk_ds)
 
             logger.debug(f'Writing {output_filepath}')
+
+            # Round time/time_bnds to avoid floating point issues (can remove if time units is changed to "minutes since")
+            if not adu.is_time_invariant(_chunk_ds):
+                _chunk_ds['time'] = _chunk_ds['time'].dt.round('1s')
+                if 'time_bnds' in _chunk_ds:
+                    _chunk_ds['time_bnds'] = _chunk_ds['time_bnds'].dt.round('1s')
 
             write_kwargs = {
                 "path": output_filepath,
