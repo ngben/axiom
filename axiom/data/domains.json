@@ -55,7 +55,7 @@
         "lon_max": 206.7,
         "lat_min": -52.5,
         "lat_max": 12.3,
-        "rounding": 2
+	"rounding": 2
     },
     "AUS-20i": {
         "dx": 0.2,
@@ -75,74 +75,74 @@
     },
     "MEL-01i": {
         "dx": 0.01,
-        "lon_min": 143.0,
-        "lon_max": 146.8,
-        "lat_min": -39.4,
-        "lat_max": -36.3,
-        "rounding": 2
+        "lon_min": 143.005,
+        "lon_max": 146.795,
+        "lat_min": -39.395,
+        "lat_max": -36.305,
+        "rounding": 3
     },
     "SYD-01i": {
         "dx": 0.01,
-        "lon_min": 148.4,
-        "lon_max": 152.5,
-        "lat_min": -35.2,
-        "lat_max": -32.1,
-        "rounding": 2
+        "lon_min": 148.405,
+        "lon_max": 152.495,
+        "lat_min": -35.195,
+        "lat_max": -32.105,
+        "rounding": 3
     },
     "BRI-01i": {
         "dx": 0.01,
-        "lon_min": 150.7,
-        "lon_max": 154.4,
-        "lat_min": -29.3,
-        "lat_max": -25.6,
-        "rounding": 2
+        "lon_min": 150.705,
+        "lon_max": 154.395,
+        "lat_min": -29.295,
+        "lat_max": -25.605,
+        "rounding": 3
     },
     "PER-01i": {
         "dx": 0.01,
-        "lon_min": 114.1,
-        "lon_max": 117.3,
-        "lat_min": -33.7,
-        "lat_max": -30.6,
-        "rounding": 2
+        "lon_min": 114.105,
+        "lon_max": 117.295,
+        "lat_min": -33.695,
+        "lat_max": -30.605,
+        "rounding": 3
     },
     "ADL-01i": {
         "dx": 0.01,
-        "lon_min": 137.4,
-        "lon_max": 139.9,
-        "lat_min": -36.3,
-        "lat_max": -33.6,
-        "rounding": 2
+        "lon_min": 137.405,
+        "lon_max": 139.895,
+        "lat_min": -36.295,
+        "lat_max": -33.605,
+        "rounding": 3
     },
     "HBA-01i": {
         "dx": 0.01,
-        "lon_min": 146.9,
-        "lon_max": 148.8,
-        "lat_min": -44.5,
-        "lat_max": -41.8,
-        "rounding": 2
+        "lon_min": 146.905,
+        "lon_max": 148.795,
+        "lat_min": -44.495,
+        "lat_max": -41.805,
+        "rounding": 3
     },
     "DRW-01i": {
         "dx": 0.01,
-        "lon_min": 129.9,
-        "lon_max": 132.3,
-        "lat_min": -13.8,
-        "lat_max": -10.4,
-        "rounding": 2
+        "lon_min": 129.905,
+        "lon_max": 132.295,
+        "lat_min": -13.795,
+        "lat_max": -10.405,
+        "rounding": 3
     },
     "ACT-01i": {
         "dx": 0.01,
-        "lon_min": 147.4,
-        "lon_max": 150.3,
-        "lat_min": -36.8,
-        "lat_max": -34.2,
-        "rounding": 2
+        "lon_min": 147.405,
+        "lon_max": 150.295,
+        "lat_min": -36.795,
+        "lat_max": -34.205,
+        "rounding": 3
     },
     "AUK-01i": {
         "dx": 0.01,
-        "lon_min": 173.0,
-        "lon_max": 176.6,
-        "lat_min": -38.2,
-        "lat_max": -35.0,
-        "rounding": 2
+        "lon_min": 173.005,
+        "lon_max": 176.695,
+        "lat_min": -38.195,
+        "lat_max": -35.005,
+        "rounding": 3
     }
 }
