@@ -1,5 +1,5 @@
 {
-    "time_units": "days since 1950-01-01 00:00:00",
+    "time_units": "minutes since 1950-01-01 00:00:00",
     "reference_time": "1950-01-01 00:00:00",
     "xarray": {
         "open_dataset": {
@@ -118,7 +118,7 @@
         "time": {
             "_FillValue": 1e20,
             "dtype": "double",
-            "units": "days since 1950-01-01 00:00:00",
+            "units": "minutes since 1950-01-01 00:00:00",
             "zlib": true,
             "complevel": 1
         }

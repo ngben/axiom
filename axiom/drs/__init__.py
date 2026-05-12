@@ -583,14 +583,16 @@ def process(
             # Derive the start/end date strings from the actual timeseries and override
             if config.derive_filename_times_from_data or output_frequency == '5min':
                 # Determine the format based on the output_frequency
-                if output_frequency == '1D':
+                if output_frequency == '1H':
+                    date_format = '%Y%m%d%H%M'
+                elif output_frequency == '1D':
                     date_format = '%Y%m%d'
                 elif output_frequency == '1M':
                     date_format = '%Y%m'
                 elif output_frequency == 'fx':
                     date_format = None
                 else:
-                    date_format = '%Y%m%d%H%M'
+                    date_format = '%Y%m%d%H%M%S'
 
                 if date_format is not None:
                     str_times = _chunk_ds.time.dt.strftime(date_format).data
