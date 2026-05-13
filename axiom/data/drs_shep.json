@@ -11,9 +11,9 @@
     },
     "dask": {
         "enable": true,
-	    "engine": "h5netcdf",
+        "engine": "h5netcdf",
         "restart_client_between_variables": false,
-	    "restart_timeout_seconds": 120,
+        "restart_timeout_seconds": 120,
         "cluster": {
             "n_workers": 1
         }
@@ -30,36 +30,41 @@
     "rolling_time_averaging": true,
     "rerun_failures": false,
     "rerun_attempts": 3,
-    "processing_timeout_seconds": 600, 
-    "derive_filename_times_from_data": false,
+    "processing_timeout_seconds": 1200, 
+    "derive_filename_times_from_data": true,
     "copy_coordinates_from_inputs": true,
     "detect_output_frequency_from_inputs": true,
-    "default_schema": "CORDEX",
-    "historical_cutoff": 2006,
+    "default_schema": "CORDEX-SHEP",
+    "historical_cutoff": 2014,
     "enable_historical_cutoff": false,
     "track_failures": true,
     "metadata_defaults": {
+        "Conventions": "%(Conventions)s",
+        "activity_id": "%(activity_id)s",
         "contact": "%(contact)s",
-        "Conventions": "CF-1.11",
-        "CORDEX_domain": "%(domain)s",
         "creation_date": "%(creation_date)s",
-        "driving_experiment_name": "%(driving_experiment_name)s",
-        "driving_model_ensemble_member": "%(ensemble)s",
-        "driving_model_id": "%(gcm_institute)s-%(gcm_model)s",
-        "ensemble": "%(ensemble)s",
-        "experiment_id": "%(driving_experiment_name)s",
-        "frequency": "%(output_frequency)s",
-        "institute_id": "CSIRO",
-        "model_id": "%(model_id)s",
-        "product": "output",
-        "project_id": "%(project)s",
-        "rcm_institute": "CSIRO",
-        "rcm_model_cordex": "%(rcm_model_cordex)s",
-        "rcm_model": "%(rcm_model)s",
-        "rcm_version_cordex": "%(rcm_version_cordex)s",
-        "rcm_version_id": "%(rcm_version_id)s",
-        "references": "https://confluence.csiro.au/display/CCAM",
-        "tracking_id": "%(uuid)s"
+        "domain": "%(domain)s",
+        "domain_id": "%(domain_id)s",
+        "driving_institution_id": "%(driving_institution_id)s",
+        "driving_source_id": "%(driving_source_id)s",
+        "driving_variant_label": "%(driving_variant_label)s",
+        "frequency": "%(frequency_mapping)s",
+        "institution": "%(institution)s",
+        "institution_id": "%(institution_id)s",
+        "license": "%(license)s",
+        "mip_era": "%(mip_era)s",
+        "grid": "%(grid)s",
+        "product": "%(product)s",
+        "project_id": "%(project_id)s",
+        "source": "%(source)s",
+        "source_id": "%(source_id)s",
+        "source_type": "%(source_type)s",
+        "version_realization": "%(version_realization)s",
+        "tracking_id": "%(uuid)s",
+        "variable_id": "%(variable)s",
+        "doi": "%(doi)s",
+        "references": "%(references)s",
+        "variable_version": "%(version)s"
     },
     "frequency_mapping":{
         "5min": "5min",
@@ -70,7 +75,7 @@
         "6H": "6hr",
         "fx": "fx"
     },
-    "output_format": "NETCDF4",
+    "output_format": "NETCDF4_CLASSIC",
     "encoding": {
         "variables": {
             "dtype": "float32",
@@ -98,13 +103,13 @@
             "complevel": 1
         },
         "lat_bnds": {
-            "_FillValue": 1e20,
+            "_FillValue": null,
             "dtype": "double",
             "zlib": true,
             "complevel": 1
         },
         "lon_bnds": {
-            "_FillValue": 1e20,
+            "_FillValue": null,
             "dtype": "double",
             "zlib": true,
             "complevel": 1
@@ -121,13 +126,133 @@
             "units": "minutes since 1950-01-01 00:00:00",
             "zlib": true,
             "complevel": 1
+        },
+        "time_bnds": {
+            "_FillValue": null,
+            "dtype": "double",
+            "zlib": true,
+            "complevel": 1
+        },
+        "crs": {
+            "_FillValue": null,
+            "dtype": "int",
+            "zlib": true,
+            "complevel": 1
+        },
+        "h2": {
+            "_FillValue": null,
+            "dtype": "double",
+            "zlib": true,
+            "complevel": 1
+        },
+        "h10": {
+            "_FillValue": null,
+            "dtype": "double",
+            "zlib": true,
+            "complevel": 1
+        },
+        "h50": {
+            "_FillValue": null,
+            "dtype": "double",
+            "zlib": true,
+            "complevel": 1
+        },
+        "h100": {
+            "_FillValue": null,
+            "dtype": "double",
+            "zlib": true,
+            "complevel": 1
+        },
+        "h150": {
+            "_FillValue": null,
+            "dtype": "double",
+            "zlib": true,
+            "complevel": 1
+        },
+        "h200": {
+            "_FillValue": null,
+            "dtype": "double",
+            "zlib": true,
+            "complevel": 1
+        },
+        "h250": {
+            "_FillValue": null,
+            "dtype": "double",
+            "zlib": true,
+            "complevel": 1
+        },
+        "h300": {
+            "_FillValue": null,
+            "dtype": "double",
+            "zlib": true,
+            "complevel": 1
+        },
+        "p1000": {
+            "_FillValue": null,
+            "dtype": "double",
+            "zlib": true,
+            "complevel": 1
+        },
+        "p925": {
+            "_FillValue": null,
+            "dtype": "double",
+            "zlib": true,
+            "complevel": 1
+        },
+        "p850": {
+            "_FillValue": null,
+            "dtype": "double",
+            "zlib": true,
+            "complevel": 1
+        },
+        "p700": {
+            "_FillValue": null,
+            "dtype": "double",
+            "zlib": true,
+            "complevel": 1
+        },
+        "p600": {
+            "_FillValue": null,
+            "dtype": "double",
+            "zlib": true,
+            "complevel": 1
+        },
+        "p500": {
+            "_FillValue": null,
+            "dtype": "double",
+            "zlib": true,
+            "complevel": 1
+        },
+        "p400": {
+            "_FillValue": null,
+            "dtype": "double",
+            "zlib": true,
+            "complevel": 1
+        },
+        "p300": {
+            "_FillValue": null,
+            "dtype": "double",
+            "zlib": true,
+            "complevel": 1
+        },
+        "p250": {
+            "_FillValue": null,
+            "dtype": "double",
+            "zlib": true,
+            "complevel": 1
+        },
+        "p200": {
+            "_FillValue": null,
+            "dtype": "double",
+            "zlib": true,
+            "complevel": 1
         }
     },
     "templates": {
-        "drs_base": "%(rcm_institute)s/%(gcm_institute)s-%(gcm_model)s/%(driving_experiment_name)s/%(ensemble)s/%(rcm_institute)s-%(rcm_model)s/%(rcm_version_id)s",
-        "drs_path": "%(output_directory)s/%(project)s/output/%(domain)s/%(rcm_institute)s/%(gcm_institute)s-%(gcm_model)s/%(driving_experiment_name)s/%(ensemble)s/%(rcm_institute)s-%(rcm_model)s/%(rcm_version_id)s/%(frequency_mapping)s/%(variable)s",
-        "filename": "%(variable)s_%(domain)s_%(gcm_institute)s-%(gcm_model)s_%(driving_experiment_name)s_%(ensemble)s_%(rcm_institute)s-%(rcm_model)s_%(rcm_version_id)s_%(frequency_mapping)s_%(start_date)s-%(end_date)s.nc",
-        "filename_fixed": "%(variable)s_%(domain)s_%(gcm_institute)s-%(gcm_model)s_%(driving_experiment_name)s_%(ensemble)s_%(rcm_institute)s-%(rcm_model)s_%(rcm_version_id)s.nc"
+        "drs_base": "%(institution_id)s/%(gcm_institute)s-%(gcm_model)s/%(driving_experiment_id)s/%(driving_variant_label)s/%(institution_id)s-%(source_id)s/%(version_realization)s",
+        "drs_path": "%(output_directory)s/%(project_id)s/Models/%(domain_id)s/%(event_id)s/%(driving_source_id)s/%(driving_variant_label)s/%(institution_id)s/%(source_id)s/%(version_realization)s/%(frequency_mapping)s/%(variable)s/%(version)s",
+        "filename": "%(variable)s_%(domain_id)s_%(event_id)s_%(driving_source_id)s_%(driving_variant_label)s_%(institution_id)s_%(source_id)s_%(version_realization)s_%(frequency_mapping)s_%(start_date)s-%(end_date)s.nc",
+        "filename_fixed": "%(variable)s_%(domain_id)s_%(event_id)s_%(driving_source_id)s_%(driving_variant_label)s_%(institution_id)s_%(source_id)s_%(version_realization)s_fx.nc"
     },
     "automatic_error_recovery": true,
     "automatic_error_recovery_count": 1,
