@@ -524,6 +524,27 @@ def process(
             # Ensure time_bnds is in the encoding for the netCDF write
             encoding['time_bnds'] = config.encoding['time_bnds']
 
+        if has_time_bnds:
+            logger.info(f"Stripping unwanted metadata/encoding from time_bnds for {variable}.")
+            
+            # Strip from standard attributes dictionary
+            _ds['time_bnds'].attrs.pop('units', None)
+            _ds['time_bnds'].attrs.pop('_FillValue', None)
+
+            # Strip/Override from variable encoding dictionary
+            _ds['time_bnds'].encoding.pop('units', None)
+            _ds['time_bnds'].encoding.pop('_FillValue', None)
+            _ds['time_bnds'].encoding['_FillValue'] = None
+
+            # Clean up the parent time variable if needed
+            if 'units' in _ds['time'].attrs:
+                del _ds['time'].attrs['units']
+                
+            # If a master encoding override dictionary exists, clean it too
+            if 'encoding' in locals() and 'time_bnds' in encoding:
+                encoding['time_bnds'].pop('units', None)
+                encoding['time_bnds']['_FillValue'] = None
+
         logger.debug(f'Postprocessing done')
 
         # Get the full output filepath with string interpolation
