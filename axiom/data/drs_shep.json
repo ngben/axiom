@@ -30,7 +30,7 @@
     "rolling_time_averaging": true,
     "rerun_failures": false,
     "rerun_attempts": 3,
-    "processing_timeout_seconds": 1200, 
+    "processing_timeout_seconds": 4800,
     "derive_filename_times_from_data": true,
     "copy_coordinates_from_inputs": true,
     "detect_output_frequency_from_inputs": true,
@@ -250,7 +250,7 @@
     },
     "templates": {
         "drs_base": "%(institution_id)s/%(gcm_institute)s-%(gcm_model)s/%(driving_experiment_id)s/%(driving_variant_label)s/%(institution_id)s-%(source_id)s/%(version_realization)s",
-        "drs_path": "%(output_directory)s/%(project_id)s/Models/%(domain_id)s/%(event_id)s/%(driving_source_id)s/%(driving_variant_label)s/%(institution_id)s/%(source_id)s/%(version_realization)s/%(frequency_mapping)s/%(variable)s/%(version)s",
+        "drs_path": "%(output_directory)s/%(project_id)s/Models/%(domain_id)s/%(event_id)s/%(institution_id)s/%(driving_source_id)s/%(driving_variant_label)s/%(source_id)s/%(version_realization)s/%(frequency_mapping)s/%(variable)s/%(version)s",
         "filename": "%(variable)s_%(domain_id)s_%(event_id)s_%(driving_source_id)s_%(driving_variant_label)s_%(institution_id)s_%(source_id)s_%(version_realization)s_%(frequency_mapping)s_%(start_date)s-%(end_date)s.nc",
         "filename_fixed": "%(variable)s_%(domain_id)s_%(event_id)s_%(driving_source_id)s_%(driving_variant_label)s_%(institution_id)s_%(source_id)s_%(version_realization)s_fx.nc"
     },
