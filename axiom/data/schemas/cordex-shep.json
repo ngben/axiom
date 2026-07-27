@@ -4191,6 +4191,118 @@
                     "m s-1"
                 ]
             }
+        },
+        "helicity": {
+            "long_name": {
+                "type": "string",
+                "allowed": [
+                    "Updraft Helicity"
+                ]
+            },
+            "standard_name": {
+                "type": "string",
+                "allowed": [
+                    "updraft_helicity"
+                ]
+            },
+            "units": {
+                "type": "string",
+                "allowed": [
+                    "m-2 s-2"
+                ]
+            }
+        },
+        "helicitymax": {
+            "long_name": {
+                "type": "string",
+                "allowed": [
+                    "Hourly Maximum Updraft Helicity"
+                ]
+            },
+            "standard_name": {
+                "type": "string",
+                "allowed": [
+                    "hourly_maximum_updraft_helicity"
+                ]
+            },
+            "units": {
+                "type": "string",
+                "allowed": [
+                    "m-2 s-2"
+                ]
+            }
+        },
+        "helicitymin": {
+            "long_name": {
+                "type": "string",
+                "allowed": [
+                    "Hourly Minimum Updraft Helicity"
+                ]
+            },
+            "standard_name": {
+                "type": "string",
+                "allowed": [
+                    "hourly_minimum_updraft_helicity"
+                ]
+            },
+            "units": {
+                "type": "string",
+                "allowed": [
+                    "m-2 s-2"
+                ]
+            }
+        },
+        "soilt": {
+            "long_name": {
+                "type": "string",
+                "allowed": [
+                    "Soil type"
+                ]
+            },
+            "standard_name": {
+                "type": "string",
+                "allowed": [
+                    "soil_type"
+                ]
+            },
+            "units": {
+                "type": "string",
+                "allowed": [
+                    "none"
+                ]
+            },
+            "soilt_description": {
+                "type": "string",
+                "allowed": [
+                    "-01:freshwater 00:water 01:Coarse sand/Loamy sand 02:Medium clay loam/silty clay loam/silt loam 03:Fine clay 04:Coarse-medium sandy loam/loam 05:Coarse-fine sandy clay 06:Medium-fine silty clay 07:Coarse-medium-fine sandy clay loam 08:Organic peat 09:Permanent ice"
+                ]
+            }
+        },
+        "vegt": {
+            "long_name": {
+                "type": "string",
+                "allowed": [
+                    "Vegetation Type"
+                ]
+            },
+            "standard_name": {
+                "type": "string",
+                "allowed": [
+                    "vegetation_type"
+                ]
+            },
+            "units": {
+                "type": "string",
+                "allowed": [
+                    "none"
+                ]
+            },
+            "vegt_description": {
+                "type": "string",
+                "allowed": [
+                    "000:water 001:evergreen_needleleaf 002:evergreen_broadleaf 003:deciduous_needleleaf 004:deciduous_broadleaf 005:shrub 006:C3_grassland 007:C4_grassland 008:tundra 009:C3_cropland 010:C4_cropland 011:wetland 012:empty 013:empty 014:barren 015:(Urban-generic) 016:lakes 017:ice 018:evergreen_broadleaf_sava 101:Urban-generic 102:Urban-low 103:Urban-medium 104:Urban-high 105:Urban-cbd 106:Industrial-low 107:Industrial-medium 108:Industrial-high 109:lcz1 110:lcz2 111:lcz3 112:lcz4 113:lcz5 114:lcz6 115:lcz7 116:lcz8 117:lcz9 118:lcz10"
+                ]
+            }
         }
     }
 }

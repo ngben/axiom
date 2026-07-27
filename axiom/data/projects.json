@@ -205,6 +205,9 @@
             "mrfso",
             "mrros",
             "sftlf",
+            "sftlaf",
+            "sfturf",
+            "soilt",
             "ta200",
             "ta500",
             "ta850",
@@ -223,7 +226,11 @@
             "evspsbl",
             "sfcWind",
             "evspsblpot",
-            "sfcWindmax"
+            "sfcWindmax",
+            "vegt",
+            "helicity",
+	    "helicitymax",
+	    "helicitymin"
         ],
         "variables_3d": {
             "ta": [
@@ -291,7 +298,9 @@
             "orog",
             "sftlf",
             "sftlaf",
-            "sfturf"
+            "sfturf",
+            "soilt",
+            "vegt"
         ]
     },
     "_default": {
