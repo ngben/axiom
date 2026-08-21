@@ -82,6 +82,7 @@
             "_FillValue": 1e20,
             "missing_value": 1e20,
             "zlib": true,
+            "shuffle": true,
             "complevel": 1
         },
         "lon": {
