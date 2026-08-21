@@ -83,171 +83,182 @@
             "missing_value": 1e20,
             "zlib": true,
             "shuffle": true,
-            "complevel": 1
+            "complevel": 4
         },
         "lon": {
             "_FillValue": 1e20,
             "dtype": "double",
             "zlib": true,
-            "complevel": 1
+            "complevel": 4
         },
         "lev": {
             "_FillValue": 1e20,
             "dtype": "double",
             "zlib": true,
-            "complevel": 1
+            "complevel": 4
         },
         "lat": {
             "_FillValue": 1e20,
             "dtype": "double",
             "zlib": true,
-            "complevel": 1
+            "complevel": 4
         },
         "lat_bnds": {
             "_FillValue": null,
             "dtype": "double",
             "zlib": true,
-            "complevel": 1
+            "complevel": 4
         },
         "lon_bnds": {
             "_FillValue": null,
             "dtype": "double",
             "zlib": true,
-            "complevel": 1
+            "complevel": 4
         },
         "depth": {
             "_FillValue": 1e20,
             "dtype": "double",
             "zlib": true,
-            "complevel": 1
+            "complevel": 4
         },
         "time": {
             "_FillValue": 1e20,
             "dtype": "double",
             "units": "minutes since 1950-01-01 00:00:00",
             "zlib": true,
-            "complevel": 1
+            "complevel": 4
         },
         "time_bnds": {
             "_FillValue": null,
             "dtype": "double",
             "zlib": true,
-            "complevel": 1
+            "complevel": 4
         },
         "crs": {
             "_FillValue": null,
             "dtype": "int",
             "zlib": true,
-            "complevel": 1
+            "complevel": 4
         },
         "h2": {
             "_FillValue": null,
             "dtype": "double",
             "zlib": true,
-            "complevel": 1
+            "complevel": 4
         },
         "h10": {
             "_FillValue": null,
             "dtype": "double",
             "zlib": true,
-            "complevel": 1
+            "complevel": 4
         },
         "h50": {
             "_FillValue": null,
             "dtype": "double",
             "zlib": true,
-            "complevel": 1
+            "complevel": 4
         },
         "h100": {
             "_FillValue": null,
             "dtype": "double",
             "zlib": true,
-            "complevel": 1
+            "complevel": 4
         },
         "h150": {
             "_FillValue": null,
             "dtype": "double",
             "zlib": true,
-            "complevel": 1
+            "complevel": 4
         },
         "h200": {
             "_FillValue": null,
             "dtype": "double",
             "zlib": true,
-            "complevel": 1
+            "complevel": 4
         },
         "h250": {
             "_FillValue": null,
             "dtype": "double",
             "zlib": true,
-            "complevel": 1
+            "complevel": 4
         },
         "h300": {
             "_FillValue": null,
             "dtype": "double",
             "zlib": true,
-            "complevel": 1
+            "complevel": 4
         },
         "p1000": {
             "_FillValue": null,
             "dtype": "double",
             "zlib": true,
-            "complevel": 1
+            "complevel": 4
         },
         "p925": {
             "_FillValue": null,
             "dtype": "double",
             "zlib": true,
-            "complevel": 1
+            "complevel": 4
         },
         "p850": {
             "_FillValue": null,
             "dtype": "double",
             "zlib": true,
-            "complevel": 1
+            "complevel": 4
         },
         "p700": {
             "_FillValue": null,
             "dtype": "double",
             "zlib": true,
-            "complevel": 1
+            "complevel": 4
         },
         "p600": {
             "_FillValue": null,
             "dtype": "double",
             "zlib": true,
-            "complevel": 1
+            "complevel": 4
         },
         "p500": {
             "_FillValue": null,
             "dtype": "double",
             "zlib": true,
-            "complevel": 1
+            "complevel": 4
         },
         "p400": {
             "_FillValue": null,
             "dtype": "double",
             "zlib": true,
-            "complevel": 1
+            "complevel": 4
         },
         "p300": {
             "_FillValue": null,
             "dtype": "double",
             "zlib": true,
-            "complevel": 1
+            "complevel": 4
         },
         "p250": {
             "_FillValue": null,
             "dtype": "double",
             "zlib": true,
-            "complevel": 1
+            "complevel": 4
         },
         "p200": {
             "_FillValue": null,
             "dtype": "double",
             "zlib": true,
-            "complevel": 1
+            "complevel": 4
         }
+    },
+    "chunk_sizes": {
+        "MEL-01i": {"time": 96, "lat": 62, "lon": 95, "others": 1},
+        "SYD-01i": {"time": 96, "lat": 62, "lon": 82, "others": 1},
+        "BRI-01i": {"time": 96, "lat": 74, "lon": 74, "others": 1},
+        "PER-01i": {"time": 96, "lat": 62, "lon": 64, "others": 1},
+        "ADL-01i": {"time": 96, "lat": 90, "lon": 50, "others": 1},
+        "HBA-01i": {"time": 96, "lat": 90, "lon": 54, "others": 1},
+        "DRW-01i": {"time": 96, "lat": 68, "lon": 80, "others": 1},
+        "ACT-01i": {"time": 96, "lat": 52, "lon": 58, "others": 1},
+        "AUK-01i": {"time": 96, "lat": 64, "lon": 74, "others": 1}
     },
     "templates": {
         "drs_base": "%(institution_id)s/%(gcm_institute)s-%(gcm_model)s/%(driving_experiment_id)s/%(driving_variant_label)s/%(institution_id)s-%(source_id)s/%(version_realization)s",

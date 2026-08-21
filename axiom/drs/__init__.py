@@ -273,9 +273,10 @@ def process(
     if not adu.is_time_invariant(ds):
         logger.info(f'Subsetting times to {start_year}')
         time_slice = slice(f'{start_year}-01-01', f'{start_year}-12-31')
-        ds['time'] = ds['time'].dt.round('1s')
-        if 'time_bnds' in ds:
-            ds['time_bnds'] = ds['time_bnds'].dt.round('1s')
+        # Time rounding removed — not needed with 'minutes since' units
+        # ds['time'] = ds['time'].dt.round('1s')
+        # if 'time_bnds' in ds:
+        #     ds['time_bnds'] = ds['time_bnds'].dt.round('1s')
         ds = ds.sel(time=time_slice, drop=True)
 
     # Skip over the file if subdaily resampling is disabled, this will stop 
@@ -473,15 +474,21 @@ def process(
         encoding['lon_bnds'] = config.encoding['lon_bnds']
         encoding['crs'] = config.encoding['crs']
 
-        # Add chunking output encoding
+        # Add chunking output encoding based on domain_id (configured in drs.json/drs_shep.json)
+        domain_key = local_args['domain_id']
+        chunk_config = config.get('chunk_sizes', default={})
         num_dims = len(ds[variable].dims)
-        if num_dims == 4:
-#            encoding[variable]['chunksizes'] = (1, 1, 48, 48)
-            encoding[variable]['chunksizes'] = (92, 1, 62, 82)
-        elif num_dims == 3:
-#            encoding[variable]['chunksizes'] = (1, 48, 48)
-            encoding[variable]['chunksizes'] = (92, 62, 82)
+
+        if isinstance(domain_key, str) and domain_key in chunk_config:
+            cs = chunk_config[domain_key]
+            if num_dims == 4:
+                encoding[variable]['chunksizes'] = (cs['time'], cs['others'], cs['lat'], cs['lon'])
+            elif num_dims == 3:
+                encoding[variable]['chunksizes'] = (cs['time'], cs['lat'], cs['lon'])
+            else:
+                encoding[variable]['chunksizes'] = None
         else:
+            logger.warn(f'No chunk_sizes configured for domain "{domain_key}", chunking disabled.')
             encoding[variable]['chunksizes'] = None
 
         # Postprocess data if required
@@ -643,11 +650,11 @@ def process(
 
             logger.debug(f'Writing {output_filepath}')
 
-            # Round time/time_bnds to avoid floating point issues (can remove if time units is changed to "minutes since")
-            if not adu.is_time_invariant(_chunk_ds):
-                _chunk_ds['time'] = _chunk_ds['time'].dt.round('1s')
-                if 'time_bnds' in _chunk_ds:
-                    _chunk_ds['time_bnds'] = _chunk_ds['time_bnds'].dt.round('1s')
+            # Time rounding removed — not needed with 'minutes since' units
+            # if not adu.is_time_invariant(_chunk_ds):
+            #     _chunk_ds['time'] = _chunk_ds['time'].dt.round('1s')
+            #     if 'time_bnds' in _chunk_ds:
+            #         _chunk_ds['time_bnds'] = _chunk_ds['time_bnds'].dt.round('1s')
 
             write_kwargs = {
                 "path": output_filepath,
