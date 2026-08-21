@@ -668,6 +668,19 @@ def process(
 
             write = _chunk_ds.to_netcdf(**write_kwargs)
 
+            # Repack the file to reduce unaccounted space
+            import subprocess
+            temp_filepath = output_filepath + '.tmp'
+            logger.debug(f'Running h5repack on {output_filepath}')
+            try:
+                subprocess.run(f'module load hdf5 && h5repack "{output_filepath}" "{temp_filepath}"', shell=True, executable='/bin/bash', check=True)
+                os.replace(temp_filepath, output_filepath)
+                logger.debug('h5repack completed successfully.')
+            except Exception as e:
+                logger.warning(f'h5repack failed: {e}')
+                if os.path.exists(temp_filepath):
+                    os.remove(temp_filepath)
+
     elapsed_time = timer.stop()
     logger.info(f'DRS processing task took {elapsed_time} seconds.')
     
