@@ -786,6 +786,15 @@ def process(
                 chunk_encoding[variable]['scale_factor'] = scale_factor
                 chunk_encoding[variable]['add_offset'] = add_offset
                 chunk_encoding[variable]['_FillValue'] = -2147483647
+                
+                # Resolve conflict with missing_value
+                if 'missing_value' in chunk_encoding[variable]:
+                    del chunk_encoding[variable]['missing_value']
+                
+                # Also remove missing_value from attrs if it exists there, 
+                # as xarray will try to use it when writing
+                if 'missing_value' in _chunk_ds[variable].attrs:
+                    del _chunk_ds[variable].attrs['missing_value']
 
             write_kwargs = {
                 "path": output_filepath,
