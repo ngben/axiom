@@ -26,6 +26,129 @@ import cftime
 import re
 import pandas as pd
 
+def myround(x, base):
+    return base * np.round(x/base)
+
+packing_ccam = {
+    "CAPE": -1,
+    "CIN": -3,
+    "clh": -4,
+    "clivi": -16,
+    "cll": -4, 
+    "clm": -4, 
+    "clt": -9, 
+    "clwvi": -16,
+    "evspsbl": -27, 
+    "evspsblpot": -28,
+    "fx": -99,
+    "hfls": -8,
+    "hfss": -8,
+    "hurs": -14,
+    "hus": -24,
+    "huss": -24,
+    "mrfso": -14, 
+    "mrfsol": -14, 
+    "mrfsos": -14,
+    "mrro": -26, 
+    "mrros": -27, 
+    "mrso": -6, 
+    "mrsol": -8,
+    "mrsos": -8,
+    "omega500": -11,
+    "pr": -27, 
+    "prc": -27, 
+    "prmax": -27, 
+    "prhmax": -27, 
+    "prsn": -28,
+    "prsnmax": -28, # Same as prsn
+    "prw": -8,
+    "ps": -3,
+    "psl": -3,
+    "rlds": -12,
+    "rldscs": -12,
+    "rlus": -8,
+    "rluscs": -5,
+    "rlut": -12,
+    "rlutcs": -12,
+    "rsds": -8,
+    "rsdscs": -8,
+    "rsdsdif": -8,
+    "rsdsdir": -8,
+    "rsdt": -8,
+    "rsus": -7,
+    "rsuscs": -8,
+    "rsut": -8,
+    "rsutcs": -8,
+    "rr6minmax": -28,
+    "rr12minmax": -28,
+    "rrdtmax": -28,
+    "sfcWind": -8,
+    "sfcWindmax": -17,
+    "sfcWind10minmean": -8,
+    "sic": -15,
+    "snd": -99,
+    "snm": -28,
+    "snw": -13,
+    "sund": -8,
+    "shi": -1,
+    "ta": -12,
+    "tas": -6,
+    "tasmax": -6,
+    "tasmean": -6,
+    "tasmin": -6,
+    "tauu": -10,
+    "tauv": -10,
+    "ts": -3,
+    "tsl": -12,
+    "ua": -8,
+    "uas": -8,
+    "uasmax": -8,
+    "uasmean": -8,
+    "va": -8,
+    "vas": -8,
+    "vasmax": -8,
+    "vasmean": -8,
+    "wa": -11,
+    "wsgsmax": -8,
+    "z0": -20,
+    "zg": -8, 
+    "zmla": -3,
+    "CAPEmax": -1,
+    "CINmax": -3,
+    "MUCAPE": -1,
+    "MUCAPEmax": -1,
+    "MUCIN": -3,
+    "MUCINmax": -3,
+    "ares": -99,
+    "coltotdrym": -7,
+    "coltotwetm": -7,
+    "cw": -8,
+    "flashrate": -1,
+    "fogfraction": -8,
+    "helicity": -99, 
+    "helicitymax": -99, 
+    "helicitymin": -99, 
+    "maxcolrefl": -3,
+    "maxcolwa": -99, 
+    "prga": -99, 
+    "prra": -28,
+    "qfluxu": -4,
+    "qfluxv": -4,
+    "radrefl1km": -3,
+    "radrefl": -3,
+    "rss": -8,
+    "sfcMoisflx": -99, 
+    "soildrainage": -28,
+    "throughfall": -28,
+    "tsmean": -3,
+    "visibility": -0,
+    "wap": -10,
+    "wsgs": -8, 
+    "ztp": -99, 
+    "sftlf": -99, 
+    "orog": -99,
+}
+
 DATASET_TABLE = None
 def load_dataset_table():
     """
@@ -273,10 +396,6 @@ def process(
     if not adu.is_time_invariant(ds):
         logger.info(f'Subsetting times to {start_year}')
         time_slice = slice(f'{start_year}-01-01', f'{start_year}-12-31')
-        # Time rounding removed — not needed with 'minutes since' units
-        # ds['time'] = ds['time'].dt.round('1s')
-        # if 'time_bnds' in ds:
-        #     ds['time_bnds'] = ds['time_bnds'].dt.round('1s')
         ds = ds.sel(time=time_slice, drop=True)
 
     # Skip over the file if subdaily resampling is disabled, this will stop 
@@ -650,16 +769,28 @@ def process(
 
             logger.debug(f'Writing {output_filepath}')
 
-            # Time rounding removed — not needed with 'minutes since' units
-            # if not adu.is_time_invariant(_chunk_ds):
-            #     _chunk_ds['time'] = _chunk_ds['time'].dt.round('1s')
-            #     if 'time_bnds' in _chunk_ds:
-            #         _chunk_ds['time_bnds'] = _chunk_ds['time_bnds'].dt.round('1s')
+            chunk_encoding = encoding.copy()
+            if variable in chunk_encoding:
+                chunk_encoding[variable] = dict(chunk_encoding[variable])
+            else:
+                chunk_encoding[variable] = {}
+
+            packing_acc = packing_ccam.get(variable, -99)
+            if packing_acc != -99:
+                minval = _chunk_ds[variable].min().values
+                packing_acc2 = np.power(2., packing_acc)
+                add_offset = float(myround(minval, packing_acc2))
+                scale_factor = float(packing_acc2)
+
+                chunk_encoding[variable]['dtype'] = 'int32'
+                chunk_encoding[variable]['scale_factor'] = scale_factor
+                chunk_encoding[variable]['add_offset'] = add_offset
+                chunk_encoding[variable]['_FillValue'] = -2147483647
 
             write_kwargs = {
                 "path": output_filepath,
                 "format": output_format,
-                "encoding": encoding,
+                "encoding": chunk_encoding,
             }
 
             if not adu.is_time_invariant(_chunk_ds):
