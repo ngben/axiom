@@ -207,7 +207,6 @@
             "sftlf",
             "sftlaf",
             "sfturf",
-            "soilt",
             "ta200",
             "ta500",
             "ta850",
@@ -227,10 +226,13 @@
             "sfcWind",
             "evspsblpot",
             "sfcWindmax",
-            "vegt",
             "helicity",
 	    "helicitymax",
-	    "helicitymin"
+	    "helicitymin",
+            "LUTYPE",
+	    "SOILTYPE",
+            "vegt",
+	    "soilt"
         ],
         "variables_3d": {
             "ta": [
@@ -299,8 +301,10 @@
             "sftlf",
             "sftlaf",
             "sfturf",
-            "soilt",
-            "vegt"
+            "LUTYPE",
+	    "SOILTYPE",
+	    "vegt",
+	    "soilt"
         ]
     },
     "_default": {

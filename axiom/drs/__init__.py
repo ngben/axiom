@@ -328,6 +328,14 @@ def process(
     if len(input_files) == 0:
         raise NoFilesToProcessException()
 
+    # Switch variable naming for vegt and soilt to LUTYPE and SOILTYPE
+    if variable == 'vegt':
+        variable = 'LUTYPE'
+        local_args['variable'] = variable
+    elif variable == 'soilt':
+        variable = 'SOILTYPE'
+        local_args['variable'] = variable
+
     # Dump filepaths prior to loading
     if config.get('dump_filepaths_prior_to_loading', default=False):
         logger.debug('Dumping filepaths prior to loading... there may be a lot.')

@@ -232,6 +232,12 @@ def preprocess_ccam(ds, **kwargs):
     """
     variable = kwargs['variable']
 
+    # Map raw CCAM variables to standard DRS variable names
+    if variable == 'LUTYPE' and 'vegt' in ds.variables:
+        ds = ds.rename({'vegt': 'LUTYPE'})
+    elif variable == 'SOILTYPE' and 'soilt' in ds.variables:
+        ds = ds.rename({'soilt': 'SOILTYPE'})
+
     # Rename metadata keys if needed
     if 'rlat0' in ds.attrs.keys():
         ds.attrs['rlon'] = ds.attrs.pop('rlong0')
